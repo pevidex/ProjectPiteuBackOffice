@@ -1,17 +1,43 @@
 <template>
   <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js App"/>
+    <AddRecipe />
+    <Recipes v-bind:recipes="recipes" v-on:del-recipe="deleteRecipe"/>
   </div>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
+import Recipes from './components/Recipes.vue'
+import AddRecipe from './components/AddRecipe.vue'
+import Vue from 'vue'
+import axios from 'axios'
+import VueAxios from 'vue-axios'
+
+Vue.use(VueAxios, axios)
 
 export default {
   name: 'App',
   components: {
-    HelloWorld
+    Recipes,
+    AddRecipe
+  },
+  data(){
+    return{
+      recipes:[
+        {
+          id: 1,
+          name: "Bacalhau à Brás"
+        },
+        {
+          id:2,
+          name: "Bolo de Bolacha"
+        }
+      ]
+    }
+  },
+  methods: {
+    deleteRecipe(id){
+      this.recipes = this.recipes.filter(recipes => recipes.id != id)
+    }
   }
 }
 </script>
