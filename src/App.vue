@@ -1,42 +1,27 @@
 <template>
   <div id="app">
-    <AddRecipe />
-    <Recipes v-bind:recipes="recipes" v-on:del-recipe="deleteRecipe"/>
+    <router-link :to="{
+      name: 'AddRecipe',
+      params: { deploy_to: this.deploy_to}
+    }">Adicionar receita</router-link>
+    <br>
+    <router-link :to="{
+      name: 'EditRecipes',
+      params: { deploy_to: this.deploy_to }
+    }" >Editar receitas existentes</router-link>
+    <router-view></router-view>
   </div>
 </template>
 
 <script>
-import Recipes from './components/Recipes.vue'
-import AddRecipe from './components/AddRecipe.vue'
-import Vue from 'vue'
-import axios from 'axios'
-import VueAxios from 'vue-axios'
-
-Vue.use(VueAxios, axios)
-
 export default {
   name: 'App',
-  components: {
-    Recipes,
-    AddRecipe
-  },
+
   data(){
     return{
-      recipes:[
-        {
-          id: 1,
-          name: "Bacalhau à Brás"
-        },
-        {
-          id:2,
-          name: "Bolo de Bolacha"
-        }
-      ]
-    }
-  },
-  methods: {
-    deleteRecipe(id){
-      this.recipes = this.recipes.filter(recipes => recipes.id != id)
+      //deploy_to: 'http://projectpiteu.herokuapp.com/',
+      deploy_to: 'http://127.0.0.1:8000/',
+      recipes:[]
     }
   }
 }
