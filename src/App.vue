@@ -19,8 +19,7 @@ export default {
 
   data(){
     return{
-      //deploy_to: 'http://projectpiteu.herokuapp.com/',
-      deploy_to: 'http://127.0.0.1:8000/',
+      deploy_to: process.env.VUE_APP_DATABASE,
       recipes:[]
     }
   }
