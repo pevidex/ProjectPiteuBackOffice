@@ -1,8 +1,8 @@
 <template>
     <div>
-        <form @submit="addRecipe" autocomplete="off">
+        <form @submit="addRecipe" autocomplete="off" class="form-group">
             <label for="name">Nome da receita:</label>
-            <input type="text" v-model="name" name="name" placeholder="Nome..."><br>
+            <input type="text" class="form-control" v-model="name" name="name" placeholder="Nome..."><br>
 
             <label for="cuisine">Tipo de cozinha:</label>
             <select v-model="cuisine" name="cuisine" placeholder="Cozinha...">
@@ -13,7 +13,7 @@
             <br>
 
             <label for="time">Tempo:</label>
-            <input type="number" v-model="time" name="time"><br>
+            <input type="number" class="form-control"  v-model="time" name="time"><br>
 
             <label for="difficulty">Dificuldade:</label>
             <input type="radio" v-model="difficulty" name="difficulty" value="1">Fácil
@@ -22,13 +22,13 @@
             <br>
 
             <label for="description">Descrição da receita:</label>
-            <input type="text" v-model="description" name="description" placeholder="Descrição..."><br>
+            <input type="text" class="form-control" v-model="description" name="description" placeholder="Descrição..."><br>
 
             <label for="serves">Serve quantas pessoas:</label>
-            <input type="number" v-model="serves" name="serves"  ><br>
+            <input type="number" class="form-control"  v-model="serves" name="serves"  ><br>
 
             <label for="image">Imagem da receita:</label>
-            <input type="url" v-model="image" name="image" ><br>
+            <input type="url" class="form-control"  v-model="image" name="image" ><br>
 
             <button type="button"  @click="addStep()">Adicionar mais um passo</button><br>
 
