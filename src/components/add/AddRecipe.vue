@@ -1,24 +1,33 @@
 <template>
-    <div>
+    <div class="container">
         <form @submit="addRecipe" autocomplete="off" class="form-group">
             <label for="name">Nome da receita:</label>
             <input type="text" class="form-control" v-model="name" name="name" placeholder="Nome..."><br>
 
             <label for="cuisine">Tipo de cozinha:</label>
-            <select v-model="cuisine" name="cuisine" placeholder="Cozinha...">
+            <select class="form-control" v-model="cuisine" name="cuisine" placeholder="Cozinha...">
                 <option v-for="possible_cuisine in possilbe_cuisines" :key="possible_cuisine.name" :value="possible_cuisine.id"> 
                         {{possible_cuisine.name}}
                 </option>
             </select>
             <br>
-
             <label for="time">Tempo:</label>
             <input type="number" class="form-control"  v-model="time" name="time"><br>
+             
 
             <label for="difficulty">Dificuldade:</label>
-            <input type="radio" v-model="difficulty" name="difficulty" value="1">Fácil
-            <input type="radio" v-model="difficulty" name="difficulty" value="2">Médio
-            <input type="radio" v-model="difficulty" name="difficulty" value="3">Difícil
+            <div class="custom-control custom-radio custom-control-inline">
+                <input type="radio" id="difficulty1" v-model="difficulty" name="difficulty" value="1" class="custom-control-input">
+                <label class="custom-control-label" for="difficulty1">Fácil</label>
+            </div>
+            <div class="custom-control custom-radio custom-control-inline">
+                <input type="radio" id="difficulty2" v-model="difficulty" name="difficulty" value="2" class="custom-control-input">
+                <label class="custom-control-label" for="difficulty2">Médio</label>
+            </div>
+            <div class="custom-control custom-radio custom-control-inline">
+                <input type="radio" id="difficulty3" v-model="difficulty" name="difficulty" value="3" class="custom-control-input">
+                <label class="custom-control-label" for="difficulty3">Difícil</label>
+            </div>
             <br>
 
             <label for="description">Descrição da receita:</label>
@@ -30,40 +39,46 @@
             <label for="image">Imagem da receita:</label>
             <input type="url" class="form-control"  v-model="image" name="image" ><br>
 
-            <button type="button"  @click="addStep()">Adicionar mais um passo</button><br>
+            <button type="button" class="btn btn-success" @click="addStep()">Adicionar mais um passo</button><br>
 
             <div v-for="step in steps"
                 :key="step.id + '-step'">
                 {{step.id}}
-            <input type="text" v-model="step.instruction" name="instruction" placeholder="Instrução..."><br>
+            <input type="text" class="form-control" v-model="step.instruction" name="instruction" placeholder="Instrução..."><br>
             </div>
 
-            <button type="button"  v-if="this.steps.length != 0" @click="removeLastStep()">Eliminar último passo </button><br>
+            <button type="button" class="btn btn-danger formitem" v-if="this.steps.length != 0" @click="removeLastStep()">Eliminar último passo </button><br>
 
-            <button type="button"  @click="addIngredient()">Adicionar mais um ingrediente</button><br>
+            <button type="button" class="btn btn-success" @click="addIngredient()">Adicionar mais um ingrediente</button><br>
             
             <div v-for="ingredient in ingredients"
                 :key="ingredient.id">
-                <input type="number" v-model="ingredient.quantity" name="quantity">
-
-                <select v-model="ingredient.measure" name="ingredient" >
-                <option v-for="possible_measure in possible_measures" :key="ingredient.id + possible_measure.name" :value="possible_measure.name"> 
-                        {{possible_measure.name}}
-                </option>
-                </select>
-
-                <select v-model="ingredient.name" name="ingredient" >
-                <option v-for="possible_ingredient in possible_ingredients" 
-                        :key="ingredient.id + possible_ingredient.name" :value="possible_ingredient.id"> 
-                        {{possible_ingredient.name}}
-                </option>
-                </select>
+                <div class="form-row align-items-center formitem">
+                    <div class="col-auto my-1">
+                        <input type="number" class="form-control custom-control-inline" v-model="ingredient.quantity" name="quantity">
+                    </div>
+                    <div class="col-auto my-1">
+                        <select v-model="ingredient.measure" class="form-control custom-control-inline" name="ingredient" >
+                        <option v-for="possible_measure in possible_measures" :key="ingredient.id + possible_measure.name" :value="possible_measure.name"> 
+                                {{possible_measure.name}}
+                        </option>
+                        </select>
+                     </div>
+                    <div class="col-auto my-1">
+                        <select v-model="ingredient.name" class="form-control custom-control-inline" name="ingredient" >
+                        <option v-for="possible_ingredient in possible_ingredients" 
+                                :key="ingredient.id + possible_ingredient.name" :value="possible_ingredient.id"> 
+                                {{possible_ingredient.name}}
+                        </option>
+                        </select>
+                    </div>
+                </div>
             </div>
 
-            <button type="button"   v-if="this.ingredients.length != 0" @click="removeLastIngredient()">Eliminar último ingrediente </button><br>
-
-            <input type="submit" value="Submeter" class="btn">
+            <button type="button"  class="btn btn-danger formitem" v-if="this.ingredients.length != 0" @click="removeLastIngredient()">Eliminar último ingrediente </button><br>
+            <button type="submit" class="btn btn-primary">Submeter</button>
         </form>
+        <button class="btn btn-info" @click="downloadDb()">Export db</button>
     </div>
 </template>
 
@@ -166,7 +181,28 @@ export default {
         },
         removeLastIngredient(){
             this.ingredients.pop()
-        }
+        },
+        downloadDb(){
+            axios({
+                method: 'get',
+                url: process.env.VUE_APP_DATABASE+'exportdb',
+                responseType: 'arraybuffer'
+            })
+            .then(response => {
+                
+                this.forceFileDownload(response)
+                
+            })
+            .catch(() => console.log('error occured'+process.env.VUE_APP_DATABASE+'exportdb'))
+        },
+        forceFileDownload(response){
+            const url = window.URL.createObjectURL(new Blob([response.data]))
+            const link = document.createElement('a')
+            link.href = url
+            link.setAttribute('download', 'db-backup.json') //or any other extension
+            document.body.appendChild(link)
+            link.click()
+        },
     }
 }
 </script>

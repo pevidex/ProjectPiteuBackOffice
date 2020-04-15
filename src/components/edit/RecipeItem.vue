@@ -2,7 +2,7 @@
     <div>
         <p>
             {{recipe.name}}
-            <button @click="$emit('del-recipe',recipe.id)">x</button>
+            <button class="btn btn-danger" @click="$emit('del-recipe',recipe.id)">x</button>
         </p>
     </div>
 </template>
