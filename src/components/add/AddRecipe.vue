@@ -52,22 +52,22 @@
             <button type="button" class="btn btn-success" @click="addIngredient()">Adicionar mais um ingrediente</button><br>
             
             <div v-for="ingredient in ingredients"
-                :key="ingredient.id">
+                :key="ingredient.index">
                 <div class="form-row align-items-center formitem">
                     <div class="col-auto my-1">
                         <input type="number" class="form-control custom-control-inline" v-model="ingredient.quantity" name="quantity">
                     </div>
                     <div class="col-auto my-1">
                         <select v-model="ingredient.measure" class="form-control custom-control-inline" name="ingredient" >
-                        <option v-for="possible_measure in possible_measures" :key="ingredient.id + possible_measure.name" :value="possible_measure.name"> 
+                        <option v-for="possible_measure in possible_measures" :key="ingredient.id + possible_measure.name" 
+                            :value="possible_measure.id"> 
                                 {{possible_measure.name}}
                         </option>
                         </select>
                      </div>
                     <div class="col-auto my-1">
-                        <select v-model="ingredient.name" class="form-control custom-control-inline" name="ingredient" >
-                        <option v-for="possible_ingredient in possible_ingredients" 
-                                :key="ingredient.id + possible_ingredient.name" :value="possible_ingredient.id"> 
+                        <select v-model="ingredient.id" class="form-control custom-control-inline" name="ingredient" >
+                        <option v-for="possible_ingredient in possible_ingredients" :key="ingredient.id + possible_ingredient.name" :value="possible_ingredient.id"> 
                                 {{possible_ingredient.name}}
                         </option>
                         </select>
@@ -129,35 +129,28 @@ export default {
         },
         addRecipe(e){
             e.preventDefault();
-            axios.post(this.deploy_to + 'recipe/', {
+
+            var recipe = {
                 name: this.name,
                 image: this.image,
                 description: this.description,
                 difficulty: this.difficulty,
                 serves: this.serves,
-                cuisine: this.cuisine
-            }).then(response => { 
-                this.ingredients.forEach(ingredient =>
-                axios.post(this.deploy_to + 'recipe-ingredient/',{
-                        quantity: ingredient.quantity,
-                        recipe: response.data.id,
-                        ingredient: ingredient.name,
-                        measure: ingredient.measure
-                    }))
-
-                this.steps.forEach(step =>
-                    axios.post(this.deploy_to + 'instruction/',{
-                            step: step.id,
-                            instruction_description: step.instruction,
-                            recipe: response.data.id
-                        }))
+                cuisine: this.cuisine,
+                ingredients: this.ingredients,
+                instructions: this.steps
+            }
+            
+            axios.post(this.deploy_to + 'recipe/', recipe)
+            .then((response) => {
+                console.log(response);
+            }, (error) => {
+                console.log(error);
             })
             .catch(errors => {
-            console.log(errors)
+                console.log(errors)
             })
-
             
-
         },
         addStep(){
             var newStep = {
@@ -171,9 +164,9 @@ export default {
         },
         addIngredient(){
             var newIngredient = {
-                id: this.ingredients.length,
-                name: '',
-                measure:'',
+                index: this.ingredients.length,
+                id: '',
+                measure: '',
                 quantity: ''
             }
             this.ingredients.push(newIngredient)
