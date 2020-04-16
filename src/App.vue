@@ -9,6 +9,11 @@
       name: 'EditRecipes',
       params: { deploy_to: this.deploy_to }
     }" >Editar receitas existentes</router-link>
+    <br>
+    <router-link :to="{
+      name: 'ExportData',
+      params: { deploy_to: this.deploy_to }
+    }" >Exportar Data</router-link>
     <router-view></router-view>
   </div>
 </template>

@@ -3,13 +3,15 @@ import VueRouter from 'vue-router';
 import App from './App.vue'
 import AddRecipe from './components/add/AddRecipe.vue'
 import Recipes from './components/edit/Recipes.vue'
+import ExportData from './components/exportData/ExportData.vue'
 
 Vue.config.productionTip = false
 Vue.use(VueRouter)
 
 const routes = [
   { path:'/add', name:'AddRecipe', component:  AddRecipe, props: true},
-  { path: '/edit',  name:'EditRecipes', component: Recipes, props: true}
+  { path: '/edit',  name:'EditRecipes', component: Recipes, props: true},
+  { path: '/exportData',  name:'ExportData', component: ExportData, props: true}
 ]
 
 const router = new VueRouter({
