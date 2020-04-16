@@ -144,8 +144,6 @@ export default {
             axios.post(this.deploy_to + 'recipe/', recipe)
             .then((response) => {
                 console.log(response);
-            }, (error) => {
-                console.log(error);
             })
             .catch(errors => {
                 console.log(errors)
