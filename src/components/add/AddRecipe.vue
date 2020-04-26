@@ -59,7 +59,7 @@
                     </div>
                     <div class="col-auto my-1">
                         <select v-model="ingredient.measure" class="form-control custom-control-inline" name="ingredient" >
-                        <option v-for="possible_measure in possible_measures" :key="ingredient.id + possible_measure.name" :value="possible_measure.name"> 
+                        <option v-for="possible_measure in possible_measures" :key="ingredient.id + possible_measure.name" :value="possible_measure.id"> 
                                 {{possible_measure.name}}
                         </option>
                         </select>
