@@ -5,11 +5,19 @@
       params: { deploy_to: this.deploy_to}
     }">Adicionar receita</router-link>
     <br>
+
     <router-link :to="{
       name: 'EditRecipes',
       params: { deploy_to: this.deploy_to }
     }" >Editar receitas existentes</router-link>
     <br>
+
+    <router-link :to="{
+      name: 'AddIngredients',
+      params: { deploy_to: this.deploy_to }
+    }" >Adicionar Ingredientes</router-link>
+    <br>
+
     <router-link :to="{
       name: 'ExportData',
       params: { deploy_to: this.deploy_to }

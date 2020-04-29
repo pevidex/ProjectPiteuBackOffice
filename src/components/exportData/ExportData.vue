@@ -1,8 +1,6 @@
 <template>
     <div class="container">
         <button class="btn btn-info" @click="downloadDb()">Export db</button>
-        <br>
-        <button class="btn btn-info" @click="downloadRecipeRequests()">Export all history of create recipe requests</button>
     </div>
 </template>
 
@@ -23,17 +21,6 @@ export default {
                 
                 this.forceFileDownload(response,"db-backup.json")
                 
-            })
-            .catch(() => console.log('error occured'+process.env.VUE_APP_DATABASE+'exportdb'))
-        },
-        downloadRecipeRequests(){
-            axios({
-                method: 'get',
-                url: process.env.VUE_APP_DATABASE+'exportCreateRecipesRequests',
-                responseType: 'arraybuffer'
-            })
-            .then(response => {
-                this.forceFileDownload(response,"recipes.json")
             })
             .catch(() => console.log('error occured'+process.env.VUE_APP_DATABASE+'exportdb'))
         },

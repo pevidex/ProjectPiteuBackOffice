@@ -42,8 +42,8 @@
             <button type="button" class="btn btn-success" @click="addStep()">Adicionar mais um passo</button><br>
 
             <div v-for="step in steps"
-                :key="step.id + '-step'">
-                {{step.id}}
+                :key="step.step + '-step'">
+                {{step.step}}
             <input type="text" class="form-control" v-model="step.instruction" name="instruction" placeholder="Instrução..."><br>
             </div>
 
@@ -51,29 +51,36 @@
 
             <button type="button" class="btn btn-success" @click="addIngredient()">Adicionar mais um ingrediente</button><br>
             
-            <div v-for="ingredient in ingredients"
-                :key="ingredient.id">
-                <div class="form-row align-items-center formitem">
-                    <div class="col-auto my-1">
+            <v-container class="mx-20 my-5" align-center>
+                <v-row v-for="ingredient in ingredients" :key="ingredient.index" align-center justify-space-around>
+                    <v-col cols="2">
                         <input type="number" class="form-control custom-control-inline" v-model="ingredient.quantity" name="quantity">
-                    </div>
-                    <div class="col-auto my-1">
-                        <select v-model="ingredient.measure" class="form-control custom-control-inline" name="ingredient" >
-                        <option v-for="possible_measure in possible_measures" :key="ingredient.id + possible_measure.name" :value="possible_measure.id"> 
+                    </v-col>
+
+                    <v-col cols="4">
+                        <select v-model="ingredient.measure" class="form-control custom-control-inline mx-1" name="ingredient" >
+                        <option v-for="possible_measure in possible_measures" :key="ingredient.id + possible_measure.name" 
+                            :value="possible_measure.id"> 
                                 {{possible_measure.name}}
                         </option>
                         </select>
-                     </div>
-                    <div class="col-auto my-1">
-                        <select v-model="ingredient.name" class="form-control custom-control-inline" name="ingredient" >
-                        <option v-for="possible_ingredient in possible_ingredients" 
-                                :key="ingredient.id + possible_ingredient.name" :value="possible_ingredient.id"> 
+                    </v-col>
+
+                    <v-col cols="4">
+                        <select v-model="ingredient.id" class="form-control custom-control-inline" name="ingredient" >
+                        <option v-for="possible_ingredient in possible_ingredients" :key="ingredient.id + possible_ingredient.name" :value="possible_ingredient.id"> 
                                 {{possible_ingredient.name}}
                         </option>
                         </select>
-                    </div>
-                </div>
-            </div>
+                    </v-col>
+
+                    <v-col cols="2">
+                        <input type="checkbox" id="checkbox" v-model="ingredient.optional">
+                        <label for="checkbox">optional</label>
+                    </v-col>
+                   
+                </v-row>
+            </v-container>
 
             <button type="button"  class="btn btn-danger formitem" v-if="this.ingredients.length != 0" @click="removeLastIngredient()">Eliminar último ingrediente </button><br>
             <button type="submit" class="btn btn-primary">Submeter</button>
@@ -129,39 +136,30 @@ export default {
         },
         addRecipe(e){
             e.preventDefault();
-            axios.post(this.deploy_to + 'recipe/', {
+
+            var recipe = {
                 name: this.name,
                 image: this.image,
                 description: this.description,
                 difficulty: this.difficulty,
                 serves: this.serves,
-                cuisine: this.cuisine
-            }).then(response => { 
-                this.ingredients.forEach(ingredient =>
-                axios.post(this.deploy_to + 'recipe-ingredient/',{
-                        quantity: ingredient.quantity,
-                        recipe: response.data.id,
-                        ingredient: ingredient.name,
-                        measure: ingredient.measure
-                    }))
-
-                this.steps.forEach(step =>
-                    axios.post(this.deploy_to + 'instruction/',{
-                            step: step.id,
-                            instruction_description: step.instruction,
-                            recipe: response.data.id
-                        }))
+                cuisine: this.cuisine,
+                recipeIngredients: this.ingredients,
+                instructions: this.steps
+            }
+            console.log(recipe)
+            axios.post(this.deploy_to + 'recipe/', recipe)
+            .then((response) => {
+                console.log(response);
             })
             .catch(errors => {
-            console.log(errors)
+                console.log(errors)
             })
-
             
-
         },
         addStep(){
             var newStep = {
-                id: this.steps.length + 1,
+                step: this.steps.length + 1,
                 instruction: ''
             }
             this.steps.push(newStep)
@@ -171,10 +169,11 @@ export default {
         },
         addIngredient(){
             var newIngredient = {
-                id: this.ingredients.length,
-                name: '',
-                measure:'',
-                quantity: ''
+                index: this.ingredients.length,
+                id: '',
+                measure: '',
+                quantity: '',
+                optional: false
             }
             this.ingredients.push(newIngredient)
         },
