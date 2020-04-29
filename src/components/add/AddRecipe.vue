@@ -148,14 +148,13 @@ export default {
                 instructions: this.steps
             }
             console.log(recipe)
-            /*
             axios.post(this.deploy_to + 'recipe/', recipe)
             .then((response) => {
                 console.log(response);
             })
             .catch(errors => {
                 console.log(errors)
-            })*/
+            })
             
         },
         addStep(){
