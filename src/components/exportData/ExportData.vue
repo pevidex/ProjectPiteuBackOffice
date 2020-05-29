@@ -1,5 +1,6 @@
 <template>
     <div class="container">
+        <h1> Exportar Dados </h1>
         <button class="btn btn-info" @click="downloadDb()">Export db</button>
     </div>
 </template>
@@ -13,9 +14,12 @@ export default {
     methods: {
         downloadDb(){
             axios({
-                method: 'get',
+                method: 'get',headers :{headers: {
+                    'Authorization': `Token ${this.$store.getters.getToken}`
+                }},
                 url: process.env.VUE_APP_DATABASE+'exportdb',
                 responseType: 'arraybuffer'
+
             })
             .then(response => {
                 
