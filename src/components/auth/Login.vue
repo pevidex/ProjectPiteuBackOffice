@@ -10,6 +10,7 @@
      <hr/>
      <button type="submit">Login</button>
    </form>
+   <p v-if="err">{{err}}</p>
  </div>
 </template>
 
@@ -18,7 +19,8 @@
     data(){
       return {
         email : "",
-        password : ""
+        password : "",
+        err : null
       }
     },
     methods: {
@@ -27,7 +29,12 @@
         let password = this.password
         this.$store.dispatch('login', { email, password })
        .then(() => this.$router.push('/'))
-       .catch(err => console.log(err))
+       .catch(
+         err => {
+           console.log(err)
+            this.err=err
+          }
+       )
       }
     }
   }

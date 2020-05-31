@@ -44,6 +44,11 @@ export default new Vuex.Store({
           .then(resp => {
             const token = resp.data.token
             const user = resp.data.user
+            if(resp.data.isUserAdmin==false){
+              reject('Unauthorized')
+              console.log("test")
+              return
+            }
             localStorage.setItem('token', token)
             axios.defaults.headers.common['Authorization'] = token
             commit('auth_success', token, user)
@@ -61,6 +66,7 @@ export default new Vuex.Store({
   getters : {
     isLoggedIn: state => !!state.token,
     authStatus: state => state.status,
-    getToken: state => state.token
+    getToken: state => state.token,
+    getTokenToSend: state => {return "Token "+state.token}
   }
 })

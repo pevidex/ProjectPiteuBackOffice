@@ -1,5 +1,6 @@
 <template>
     <div class="container">
+        <h1> Receitas </h1>
         <form @submit="addRecipe" autocomplete="off" class="form-group">
             <label for="name">Nome da receita:</label>
             <input type="text" class="form-control" v-model="name" name="name" placeholder="Nome..."><br>

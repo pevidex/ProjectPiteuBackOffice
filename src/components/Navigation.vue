@@ -14,6 +14,13 @@
                 <i class="material-icons">{{routes.icon}}</i>
                 <p>{{routes.text}}</p>
               </a>
+              <ul class="subnav-content">
+                <router-link v-for="subroutes in routes.children" 
+                v-bind:key="subroutes.id"
+                :to="`${subroutes.page}`">
+                <p>{{subroutes.text}}</p>
+                </router-link>
+              </ul>
             </li>
             </router-link>
             <!-- your sidebar here -->
@@ -38,13 +45,28 @@ export default {
           id: 1,
           text: 'Receitas',
           page:'/recipes',
-          icon: 'local_dining'
+          icon: 'local_dining',
+          children: [
+            {id: 10,
+            page: '/addRecipe',
+            text: 'Add Recipe',
+            }, 
+            {id: 11,
+            page: '/validateRecipe',
+            text: 'Validate Recipe',
+            },
+          ]
         },
         {
           id: 2,
           text: 'Ingredientes',
           page:'/ingredients',
-          icon: 'local_dining'
+          icon: 'local_dining',
+          children: [
+            {id: 12,
+            page: '/validateIngredient',
+            text: 'Validate Ingredient',
+            }]
         },
         {
           id: 3,
@@ -57,8 +79,3 @@ export default {
   }
 }
 </script>
-<style>
-  .router-link-active{
-    background:red;
-  }
-</style>
