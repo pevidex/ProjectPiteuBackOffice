@@ -18,7 +18,9 @@
                 <router-link v-for="subroutes in routes.children" 
                 v-bind:key="subroutes.id"
                 :to="`${subroutes.page}`">
-                <p>{{subroutes.text}}</p>
+                <li class="sub-nav-item">
+                    <p>{{subroutes.text}}</p>
+                </li>
                 </router-link>
               </ul>
             </li>

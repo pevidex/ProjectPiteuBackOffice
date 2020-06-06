@@ -186,6 +186,7 @@ import axios from 'axios'
     data() {
       return {
         err : null,
+        success : null,
         deploy_to : process.env.VUE_APP_DATABASE,
         items: [],
         show: false,

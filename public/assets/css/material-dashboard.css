@@ -13792,7 +13792,7 @@ fieldset[disabled] .form-group .form-control {
 .navbar .navbar-nav .nav-item.active .nav-link,
 .navbar .navbar-nav .nav-item.active .nav-link:hover,
 .navbar .navbar-nav .nav-item.active .nav-link:focus {
-  color: inherit;
+  color: black;
   background-color: rgba(255, 255, 255, 0.1);
 }
 
