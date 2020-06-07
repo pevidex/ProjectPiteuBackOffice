@@ -8,16 +8,18 @@ export default new Vuex.Store({
   state: {
     status: '',
     token: localStorage.getItem('token') || '',
-    user : {}
+    userId : localStorage.getItem('userId') || "",
+    userEmail : localStorage.getItem('userEmail') || "",
   },
   mutations: {
     auth_request(state){
         state.status = 'loading'
     },
-    auth_success(state, token, user){
+    auth_success(state, token, userId, userEmail){
         state.status = 'success'
         state.token = token
-        state.user = user
+        state.userId = userId
+        state.userEmail = userEmail
     },
     auth_error(state){
         state.status = 'error'
@@ -25,6 +27,8 @@ export default new Vuex.Store({
     logout(state){
         state.status = ''
         state.token = ''
+        state.userId = ''
+        state.userEmail = ''
     },
   },
   actions: {
@@ -43,15 +47,18 @@ export default new Vuex.Store({
           axios({url: process.env.VUE_APP_DATABASE+'login/', data: user, method: 'POST' })
           .then(resp => {
             const token = resp.data.token
-            const user = resp.data.user
+            const userEmail = resp.data.userEmail
+            const userId = resp.data.userId
             if(resp.data.isUserAdmin==false){
               reject('Unauthorized')
               console.log("test")
               return
             }
             localStorage.setItem('token', token)
+            localStorage.setItem('userEmail', userEmail)
+            localStorage.setItem('userId', userId)
             axios.defaults.headers.common['Authorization'] = token
-            commit('auth_success', token, user)
+            commit('auth_success', token, userId, userEmail)
             resolve(resp)
           })
           .catch(err => {
@@ -67,6 +74,8 @@ export default new Vuex.Store({
     isLoggedIn: state => !!state.token,
     authStatus: state => state.status,
     getToken: state => state.token,
+    getUserEmail: state => state.userEmail,
+    getUserId: state => state.userId,
     getTokenToSend: state => {return "Token "+state.token}
   }
 })

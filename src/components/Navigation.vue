@@ -1,5 +1,9 @@
 <template>
-  <sidebar-menu :menu="menu" />
+  <sidebar-menu :menu="menu" :show-one-child="true" 
+        @toggle-collapse="onToggleCollapse" :collapsed="componentCollapsed">
+    <span slot="toggle-icon" class="fa fa-arrows-h"></span>
+    <span slot="dropdown-icon" class="fa fa-angle-right"></span>
+  </sidebar-menu>
 </template>
  
 <script>
@@ -9,8 +13,16 @@ import { SidebarMenu } from 'vue-sidebar-menu'
   components: {
     SidebarMenu
   },
+  methods : {
+    onToggleCollapse (componentCollapsed) {
+      this.componentCollapsed = componentCollapsed
+      this.setCollapsed(this.componentCollapsed)
+    },
+  },
+  props: ['collapsed','set-collapsed'],
   data() {
       return {
+          componentCollapsed : this.collapsed,
           menu: [
               {
                   header: true,

@@ -2,17 +2,22 @@
   <v-app>
     <Login v-if="!isLoggedIn"/>
     <div v-else>
-      <Navigation/>
-      <Toolbar/>
-      <v-content id="main-content">
-        <div class="container">
-          <div class="row">
-            <div class="col">
-              <router-view/>
+      <Toolbar></Toolbar>
+      <Navigation 
+        :collapsed="collapsed"
+        :set-collapsed="setCollapsed"
+        />
+      <div id="main-content" :class="{'collapsed' : collapsed}">
+        <v-content>
+          <div class="container">
+            <div class="row">
+              <div class="col">
+                <router-view/>
+              </div>
             </div>
           </div>
-        </div>
-      </v-content>
+        </v-content>
+      </div>
     </div>
   </v-app>
 </template>
@@ -32,11 +37,16 @@ export default {
   },
 
   data: () => ({
-    //
+    collapsed: true,
   }),
   computed : {
       isLoggedIn : function(){ return this.$store.getters.isLoggedIn}
     },
+  methods : {
+    setCollapsed(collapse){
+      this.collapsed=collapse
+    }
+  }
 };
 </script>
 <style>
@@ -49,6 +59,10 @@ export default {
   margin-top: 60px;
 }
 #main-content {
-  margin-left: 50px;
+  padding-left: 350px;
+  transition: 0.3s ease;
+}
+#main-content.collapsed {
+  padding-left: 50px;
 }
 </style>

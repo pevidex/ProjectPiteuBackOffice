@@ -4,6 +4,7 @@
       color="dark accent-4"
       dense
       dark
+      app
     >
     <v-spacer></v-spacer>
       <v-toolbar-title>{{ $route.name }}</v-toolbar-title>
