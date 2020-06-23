@@ -1,4 +1,4 @@
-# piteuoffice
+# project-piteu-backoffice
 
 ## Project setup
 ```
