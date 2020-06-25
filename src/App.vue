@@ -1,21 +1,15 @@
 <template>
   <v-app>
     <Login v-if="!isLoggedIn"/>
-    <div v-else>
+    <div class="fill-height" v-else>
       <Toolbar></Toolbar>
       <Navigation 
         :collapsed="collapsed"
         :set-collapsed="setCollapsed"
         />
-      <div id="main-content" :class="{'collapsed' : collapsed}">
-        <v-content>
-          <div class="container">
-            <div class="row">
-              <div class="col">
-                <router-view/>
-              </div>
-            </div>
-          </div>
+      <div id="main-content" class="d-flex fill-height ma-0" :class="{'collapsed' : collapsed}">
+        <v-content fill-height :class="{'collapsed' : collapsed}">
+            <router-view/>
         </v-content>
       </div>
     </div>
@@ -56,10 +50,10 @@ export default {
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: #2c3e50;
-  margin-top: 60px;
 }
 #main-content {
   padding-left: 350px;
+  height: 100%;
   transition: 0.3s ease;
 }
 #main-content.collapsed {
