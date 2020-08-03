@@ -10,6 +10,7 @@ export default new Vuex.Store({
     token: localStorage.getItem('token') || '',
     userId : localStorage.getItem('userId') || "",
     userEmail : localStorage.getItem('userEmail') || "",
+    editRecipeId : null
   },
   mutations: {
     auth_request(state){
@@ -30,6 +31,9 @@ export default new Vuex.Store({
         state.userId = ''
         state.userEmail = ''
     },
+    editRecipe(state, recipeId){
+      state.editRecipeId = recipeId
+    }
   },
   actions: {
     logout({commit}){
@@ -73,6 +77,7 @@ export default new Vuex.Store({
   getters : {
     isLoggedIn: state => !!state.token,
     authStatus: state => state.status,
+    getRecipeToEdit: state => state.editRecipeId,
     getToken: state => state.token,
     getUserEmail: state => state.userEmail,
     getUserId: state => state.userId,

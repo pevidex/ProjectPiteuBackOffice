@@ -133,52 +133,37 @@
       @filtered="onFiltered"
     >
       <template v-slot:cell(name)="row">
-        {{ row.value.first }} {{ row.value.last }}
+        {{ row.value }}
       </template>
 
       <template v-slot:cell(actions)="row">
 
-        <b-button variant="warning" size="sm" @click="info(row.item)" class="mr-1">
+        <b-button variant="warning" size="sm" @click="editRecipe(row.item.id)" class="mr-1">
           Edit
         </b-button>
-        <b-button variant="outline-primary" size="sm" @click="row.toggleDetails">
+        <b-button variant="outline-primary" size="sm" @click="showRecipeDetails(row)">
           {{ row.detailsShowing ? 'Hide' : 'Show' }} Details
         </b-button>
       </template>
 
       <template v-slot:row-details="row">
         <b-card>
-          <ul>
-            <li v-for="(value, key) in row.item" :key="key">{{ key }}: {{ value }}</li>
-          </ul>
+            <b-row align='center' justify="center">
+            <b-col cols="4">
+              <v-img contain align='right' :src=row.item.recipe.image></v-img>
+            </b-col>
+            <b-col cols="8">
+              <p class="text-left mx-10" v-html="recipeToText(row.item).replace(/(?:\r\n|\r|\n)/g, '<br />')"></p>
+            </b-col> 
+            <b-col cols=12>
+                <b-button variant="danger" v-on:click="row.item.recipe.validated=false; handleSubmit(row.item.recipe)" v-show="row.item.recipe.validated">Invalidate Recipe</b-button>
+                <b-button variant="success" v-on:click="row.item.recipe.validated=true; handleSubmit(row.item.recipe)" v-show="!row.item.recipe.validated">Validate Recipe</b-button>
+            </b-col>
+          </b-row>
         </b-card>
       </template>
     </b-table>
     <!-- Info modal -->
-    <b-modal 
-      v-model="show"
-      @ok="handleSubmit"
-      >
-      <div v-if="recipe">
-        <pre>{{recipe}}</pre>
-        <b-row class="mb-1">
-          <b-col cols="3">Cuisine</b-col>
-          <b-col>
-            <b-form-select
-                v-model="selectedCuisine"
-                :options="cuisinesAsOptions"
-                v-on:change="setCuisine"
-              ></b-form-select>
-          </b-col>
-        </b-row>
-        <b-row class="mb-1">   
-            <b-col>
-                <b-button variant="danger" v-on:click="recipe.validated=false" v-show="recipe.validated">Invalidate Recipe</b-button>
-                <b-button variant="success" v-on:click="recipe.validated=true" v-show="!recipe.validated">Validate Recipe</b-button>
-            </b-col> 
-        </b-row>
-      </div>
-    </b-modal>
   </b-container>
 </div>
 </template>
@@ -197,11 +182,9 @@ import axios from 'axios'
         items: [],
         show: false,
         recipe: null,
-        cuisinesAsOptions: [],
-        cuisines: [],
-        selectedCuisine: "",
         fields: [
           { key: 'id', label: 'Recipe Id', sortable: true, class: 'text-center' },
+          { key: 'name', label: 'Recipe Name', sortable: true, class: 'text-center'},
           { key: 'validated', label: 'Valid', sortable: true, class: 'text-center' },
           { key: 'actions', label: 'Actions' }
         ],
@@ -209,7 +192,7 @@ import axios from 'axios'
         currentPage: 1,
         perPage: 10,
         pageOptions: [5, 10, 15],
-        sortBy: '',
+        sortBy: 'id',
         sortDesc: false,
         sortDirection: 'asc',
         filter: null,
@@ -236,29 +219,14 @@ import axios from 'axios'
                 })
             .catch(error => {
             console.log(error)
-            }),
-            axios.get(this.deploy_to + 'cuisine/', {headers: {
-                'Authorization': `Token ${this.$store.getters.getToken}`
-            }}).then(resp => {
-                this.cuisines = resp.data.results
-                for(var i=0;i<this.cuisines.length;i++){
-                  this.cuisinesAsOptions.push({"value":this.cuisines[i],"text":this.cuisines[i].name})
-                }
-            }).catch(errors => {
-                this.showErr(errors)
-                console.log(errors)
             })
     },
 
     methods: {
-      info(item) {
-        axios.get(this.deploy_to + 'backoffice/recipe/'+item.id+"/", {headers: {
+      async getRecipe(id){
+        return axios.get(this.deploy_to + `backoffice/recipe/${id}/`, {headers: {
             'Authorization': `Token ${this.$store.getters.getToken}`}})
-                .then((response) => {
-                    this.recipe = response.data
-                    this.selectedCuisine = {"value":this.recipe.cuisine,"text":this.recipe.cuisine.name}
-                    this.show=true
-                })
+                .then(resp => resp.data)
                 .catch(errors => {
                     this.showErr(errors)
                     console.log(errors)
@@ -272,13 +240,13 @@ import axios from 'axios'
           this.success = msg
           setTimeout(() => this.success = null, 3000);
       },
-      setCuisine(){
-        this.recipe.cuisine = this.selectedCuisine
-      }
-      ,
       onFiltered(filteredItems) {
         this.totalRows = filteredItems.length
         this.currentPage = 1
+      },
+      editRecipe(id){
+        this.$store.commit('editRecipe', id)
+        this.$router.push("/addRecipe")
       },
       handleSubmit() {
         //todo add confirm modal before submit
@@ -292,6 +260,15 @@ import axios from 'axios'
                         this.showErr(errors)
                         console.log(errors)
                     })
+      },
+      async showRecipeDetails(row){
+        this.recipe = await this.getRecipe(row.item.id)
+        row.item["recipe"] = this.recipe
+        row.toggleDetails()
+      },
+      recipeToText(item){
+        const recipe = item.recipe
+        return "<b>id:</b>" + recipe.id + "\n<b>name:</b>: " + recipe.name + "\n<b>dish:</b> " + (recipe.dishType != null ? recipe.dishType.name : "null") + "\n<b>validated:</b> " + recipe.validated + "\n<b>readyIn:</b> " + recipe.readyInMinutes + "\n<b>prepareTime:</b> " + recipe.prepareInMinutes + "\n<b>description:</b> " + recipe.description + "\n<b>difficulty:</b> " + recipe.difficulty + "\n<b>serves:</b> " + recipe.serves + "\n<b>utensils:</b> " + recipe.utensils.map(u => u.name).join(', ') + "\n<b>ingredients:</b> " + recipe.ingredients.map(i => "" + i.quantity + " " + i.measureName + " " + i.ingredientName).join('; ') + "\n<b>steps:</b> " + recipe.instructions.length  
       }
     }
   }

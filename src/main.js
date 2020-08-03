@@ -21,6 +21,9 @@ import 'bootstrap-vue/dist/bootstrap-vue.css'
 import { library } from '@fortawesome/fontawesome-svg-core'
 import { faUserSecret } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import VueJsDialog from 'vuejs-dialog';
+import 'vuejs-dialog/dist/vuejs-dialog.min.css';
+import Constants from "@/plugins/Constants";
 
 library.add(faUserSecret)
 
@@ -30,6 +33,8 @@ Vue.use(BootstrapVue)
 Vue.use(IconsPlugin)
 Vue.use(VueSidebarMenu)
 Vue.use(VueRouter)
+Vue.use(VueJsDialog)
+Vue.use(Constants)
 
 Vue.config.productionTip = false
 Vue.prototype.$http = Axios;

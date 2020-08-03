@@ -1,54 +1,77 @@
 <template>
-    <v-container>
-        <b-alert variant="success" v-if="this.success" show>{{this.success}}</b-alert>
-        <b-alert variant="danger" v-if="this.err" show>{{this.err}}</b-alert>
-        <form ref='ingredientForm' v-on:submit.prevent="submitIngredient">
-            <div class="form-group">
-                <input type="text" class="form-control" id="name" placeholder="Name" v-model="currentIngredient.name" >
-            </div>
-           <div id="imagePreview" align="center">
-               <v-img 
-                    v-if="currentIngredient.img"
-                    :src="currentIngredient.img" alt=""
-                    contain
-                    height="400px"
-                    width="450px">
-                </v-img>
-            </div>
-            <div class="form-group">
-                <input type="text" class="form-control" id="imgURL" placeholder="Image URL" v-model="currentIngredient.img">
-            </div>
-            <div class="form-group">
-                <select class="form-control" v-model="currentIngredient.category">
-                    <option value="" disabled selected>Select a category...</option>
-                    <option v-for="category in categories" :key="category.id" :value="category.id">
-                        {{ category.name }}
-                    </option>
-                </select>
-            </div>
-            <button type="submit" class="btn btn-primary" >Submit</button>
-        </form>
-
+    <v-container fill-height style="width:100%">
+        <v-row justify="center" align="center">
+        <v-col cols="12" :md="8">
+            <v-card class="pa-10">
+            <b-alert variant="success" v-if="this.success" show>{{this.success}}</b-alert>
+            <b-alert variant="danger" v-if="this.err" show>{{this.err}}</b-alert>
+            <form ref='ingredientForm' v-on:submit.prevent="submitIngredient">
+            <v-row justify="center" align="center">
+                <v-col cols="12">
+                    <v-text-field label="Ingredient Name" v-model="currentIngredient.name"></v-text-field>
+                </v-col>
+                <v-col cols="12" :md="4" >
+                    <v-select label="Category" v-model="currentIngredient.category"
+                        :items="categories"
+                        item-text="name"
+                        item-value="id">
+                    </v-select>
+                </v-col>
+                <v-col cols="12" :md="8">
+                    <v-select label="Excluded from Diets" v-model="currentIngredient.diets"
+                        :items="diets"
+                        item-text="name"
+                        return-object
+                        multiple>
+                    </v-select>
+                </v-col>
+                <v-col cols="12" id="imagePreview" align="center">
+                    <v-img 
+                        v-if="currentIngredient.img"
+                        :src="currentIngredient.img" alt=""
+                        contain
+                        @load="onImgLoad()"
+                        @error="imgLoadError()"
+                        width="300px">
+                    </v-img>
+                </v-col>
+                <v-col cols="12" class="form-group">
+                    <v-file-input prepend-icon="mdi-camera" show-size label="Upload Photo" @change="preview_image" />
+                    <span>OR</span>
+                    <v-text-field label="URL" v-model="currentIngredient.img"></v-text-field>
+                </v-col>
+                <button type="submit" class="btn btn-primary" >Submit</button>
+            </v-row>
+            </form>
+            </v-card>
+        </v-col>
+        </v-row>
     </v-container>
 </template>
 
 <script>
 import axios from 'axios'
+import Vue from 'vue'
 
 export default {
     name: "AddIngredients",
     data(){
         return {
             deploy_to : process.env.VUE_APP_DATABASE,
+            uploadedFile: null,
+            uploadedUrl: null,
+            isImageLoaded: false,
             err: null,
             success: null,
             valid: false,
             currentIngredient: {
                 "name" : '',
-                "img" : 'https://simpleveganblog.com/wp-content/uploads/2021/01/Soy-Milk-2.jpg',
-                "category" : undefined
+                "img" : '',
+                "category" : undefined,
+                "diets": undefined
             },
             categories : [],
+            diets : [],
             ourIngredients : [],
             fetchedIngredients: [],
         }
@@ -76,27 +99,95 @@ export default {
             }
             return false
         },
-
-        submitIngredient(){
-            const ingredient = {
-                name: this.currentIngredient.name,
-                img: this.currentIngredient.img,
-                category: this.currentIngredient.category
+        preview_image(file){
+            if(file){
+                this.uploadedUrl = URL.createObjectURL(file);
+                this.currentIngredient.img = this.uploadedUrl
+                this.uploadedFile = file
+            } else {
+                this.uploadedUrl = null
+                this.uploadedFile = null
             }
-            console.log(ingredient)
-            if(ingredient.name != "" && ingredient.category != undefined) {
+        },
+        onImgLoad(){
+            this.isImageLoaded = true
+        },
+        imgLoadError(){
+            this.isImageLoaded = false
+        },
+        validateIngredient(){
+            if(this.currentIngredient.name.length < 2){
+                this.showErr("Name is too short");
+                return false
+            }
+            if(!this.isImageLoaded){
+                this.showErr("You must upload an image");
+                return false
+            }
+            if(this.currentIngredient.category == undefined){
+                this.showErr("Please select a category");
+                return false
+            }
+            return true
+        },
+        async submitIngredient(){
+            if(this.validateIngredient()) {
+                console.log("VALID")
+                var imageUrl = ""
+                if(this.uploadedUrl != null){
+                    imageUrl = await this.uploadImageToStorage()
+                } else {
+                    imageUrl = this.currentIngredient.img
+                }
+                const ingredient = {
+                    name: this.currentIngredient.name,
+                    img: imageUrl,
+                    category: this.currentIngredient.category,
+                    diets: this.currentIngredient.diets.map(d => d.id)
+                }
+                console.log(ingredient)
                 axios.post(this.deploy_to + 'ingredient/', ingredient,{headers: {
-                'Authorization': `Token ${this.$store.getters.getToken}`
-            }})
-            .then((response) => {
-                        this.showSuccess("status "+response.status)
-                    })
-                    .catch(errors => {
-                        console.log(errors)
-                        this.showErr(errors)
-                    })
+                    'Authorization': `Token ${this.$store.getters.getToken}`}})
+                .then((response) => {
+                    this.showSuccess("status "+response.status)
+                })
+                .catch(errors => {
+                    console.log(errors)
+                    this.showErr(errors)
+                })
             }
-        }
+        }, generateImageName(){
+            const fileExtension = "." + this.uploadedFile.name.split('.').pop();
+            const randomInt = "_" + Math.floor(Math.random() * 10000)
+            return this.currentIngredient.category + "_" + this.currentIngredient.name.replace(/[^a-z0-9]/gi, '_').toLowerCase() + randomInt + fileExtension
+        },
+        async uploadImageToStorage(){
+            const fileName = this.generateImageName()
+            const signedUrl = await this.getSignedUrl(fileName)
+            var bodyFormData = new FormData()
+            Object.keys(signedUrl.fields).forEach(key => {
+                bodyFormData.append(key, signedUrl.fields[key]);
+            })
+            bodyFormData.append('file', this.uploadedFile, fileName)
+            
+            //Remove default headers for S3 Communication
+            var axiosForS3 = axios.create();
+            delete axiosForS3.defaults.headers.common['Authorization'];
+            delete axiosForS3.defaults.headers.common['Content-Type'];
+
+            return axiosForS3.post(signedUrl.url, bodyFormData)
+                            .then(resp => Vue.Constants.S3_STORAGE_BASE_URL + signedUrl.fields["key"])
+                            .catch(errors => {
+                                console.log("S3 ERROR: " + errors)
+                            })
+        },
+        async getSignedUrl(fileName){
+            return axios.post(this.deploy_to + 's3/signed-url/', {"fileName": fileName}, {headers: {'Authorization': `Token ${this.$store.getters.getToken}`}})
+                        .then(resp => resp.data)
+                        .catch(errors => {
+                            console.log("Getting signed url Error: " + errors)
+                        })
+        },
     },
 
     created (){
@@ -117,6 +208,15 @@ export default {
             console.log(errors)
             this.showErr(errors)
         })
+
+        axios.get(this.deploy_to + 'diet/', {headers: {
+                'Authorization': `Token ${this.$store.getters.getToken}`
+            }}).then(resp => {
+                this.diets = resp.data.results
+            }).catch(errors => {
+                this.showErr(errors)
+                console.log(errors)
+            })
     },
 
 }
