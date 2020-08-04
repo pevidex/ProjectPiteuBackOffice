@@ -2,14 +2,16 @@ import Vue from 'vue'
 import App from './App.vue'
 import VueRouter from 'vue-router';
 import vuetify from './plugins/vuetify';
-import Recipes from './components/Recipes.vue'
+import Recipes from './components/Recipe/Recipes.vue'
 import Home from './components/Home.vue'
 import ExportData from './components/ExportData.vue'
-import ValidateRecipe from './components/ValidateRecipe.vue'
-import Ingredients from './components/Ingredients.vue'
-import ValidateIngredient from './components/ValidateIngredient.vue'
-import AddIngredient from './components/AddIngredient.vue'
-import AddRecipe from './components/AddRecipe/AddRecipe.vue'
+import ValidateRecipe from './components/Recipe/ValidateRecipe.vue'
+import Ingredients from './components/Ingredient/Ingredients.vue'
+import Diets from './components/Diet/Diets.vue'
+import Stats from './components/Stats/Stats.vue'
+import ValidateIngredient from './components/Ingredient/ValidateIngredient.vue'
+import AddIngredient from './components/Ingredient/AddIngredient.vue'
+import AddRecipe from './components/Recipe/AddRecipe.vue'
 import Login from './components/Login.vue'
 import VueSidebarMenu from 'vue-sidebar-menu'
 import Axios from 'axios'
@@ -47,6 +49,8 @@ if (token) {
 const routes = [
   { path: '/', name:'Home', component: Home, props: true, meta: {requiresAuth: true}},
   { path:'/recipes', name:'Recipes', component:  Recipes, props: true, meta: {requiresAuth: true}},
+  { path:'/diets', name:'Diets', component:  Diets, props: true, meta: {requiresAuth: true}},
+  { path:'/stats', name:'Stats', component:  Stats, props: true, meta: {requiresAuth: true}},
   { path: '/exportData',  name:'Export Data', component: ExportData, props: true, meta: {requiresAuth: true}},
   { path: '/validateRecipe', name:'Validate Recipe', component: ValidateRecipe, props: true},
   { path: '/addRecipe', name:'Add Recipe', component: AddRecipe, props: true},
