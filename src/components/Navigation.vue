@@ -69,6 +69,16 @@ import { SidebarMenu } from 'vue-sidebar-menu'
                   ]
               },
               {
+                  href: '/diets',
+                  title: 'Diets',
+                  icon: 'fa fa-filter'
+              },
+              {
+                  href: '/stats',
+                  title: 'Stats',
+                  icon: 'fa fa-stethoscope'
+              }, 
+              {
                   href: '/exportData',
                   title: 'Export Data',
                   icon: 'fa fa-database'
