@@ -47,6 +47,9 @@
 					:sort-direction="sortDir"
 					@filtered="onIngredientFiltered"
 				>
+				<template v-slot:cell(difficulty)="row">
+					{{ getDifficultyText(row.item.difficulty) }}
+				</template>
 				</b-table>
 			</v-card>
 			</v-col>
