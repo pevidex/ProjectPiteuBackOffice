@@ -28,24 +28,6 @@
 
       <b-col lg="6" class="my-1">
         <b-form-group
-          label="Initial sort"
-          label-cols-sm="3"
-          label-align-sm="right"
-          label-size="sm"
-          label-for="initialSortSelect"
-          class="mb-0"
-        >
-          <b-form-select
-            v-model="sortDirection"
-            id="initialSortSelect"
-            size="sm"
-            :options="['asc', 'desc', 'last']"
-          ></b-form-select>
-        </b-form-group>
-      </b-col>
-
-      <b-col lg="6" class="my-1">
-        <b-form-group
           label="Filter"
           label-cols-sm="3"
           label-align-sm="right"
@@ -64,21 +46,6 @@
               <b-button :disabled="!filter" @click="filter = ''">Clear</b-button>
             </b-input-group-append>
           </b-input-group>
-        </b-form-group>
-      </b-col>
-
-      <b-col lg="6" class="my-1">
-        <b-form-group
-          label="Filter On"
-          label-cols-sm="3"
-          label-align-sm="right"
-          label-size="sm"
-          description="Leave all unchecked to filter on all data"
-          class="mb-0">
-          <b-form-checkbox-group v-model="filterOn" class="mt-1">
-            <b-form-checkbox value="id">Id</b-form-checkbox>
-            <b-form-checkbox value="category">Category</b-form-checkbox>
-          </b-form-checkbox-group>
         </b-form-group>
       </b-col>
 
@@ -133,53 +100,45 @@
       @filtered="onFiltered"
     >
       <template v-slot:cell(name)="row">
-        {{ row.value.first }} {{ row.value.last }}
+        {{ row.value }}
       </template>
 
       <template v-slot:cell(actions)="row">
 
-        <b-button variant="warning" size="sm" @click="info(row.item)" class="mr-1">
+        <b-button variant="warning" size="sm" @click="editRecipe(row.item.id)" class="mr-1">
           Edit
         </b-button>
-        <b-button variant="outline-primary" size="sm" @click="row.toggleDetails">
+        <b-button variant="outline-primary" size="sm" @click="showRecipeDetails(row)">
           {{ row.detailsShowing ? 'Hide' : 'Show' }} Details
         </b-button>
       </template>
 
       <template v-slot:row-details="row">
         <b-card>
-          <ul>
-            <li v-for="(value, key) in row.item" :key="key">{{ key }}: {{ value }}</li>
-          </ul>
+            <b-row align='center' justify="center">
+            <b-col cols="4">
+              <v-img contain align='right' :src=row.item.recipe.image></v-img>
+            </b-col>
+            <b-col cols="8">
+              <p class="text-left mx-10" v-html="recipeToText(row.item).replace(/(?:\r\n|\r|\n)/g, '<br />')"></p>
+            </b-col> 
+            <b-col cols=12>
+                <b-button variant="danger" v-on:click="row.item.recipe.validated=false; handleSubmit(row.item.recipe)" v-show="row.item.recipe.validated">Invalidate Recipe</b-button>
+                <b-button variant="success" v-on:click="row.item.recipe.validated=true; handleSubmit(row.item.recipe)" v-show="!row.item.recipe.validated">Validate Recipe</b-button>
+            </b-col>
+          </b-row>
         </b-card>
       </template>
     </b-table>
     <!-- Info modal -->
-    <b-modal 
-      v-model="show"
-      @ok="handleSubmit"
-      >
-      <div v-if="editedIngredient">
-        <pre>{{editedIngredient}}</pre>
-        <!--<p><b>Ingredient name:</b> {{ingredient.name}}</p>
-        <p><b>Category:</b> {{ingredient.category}}</p>-->
-        <b-row class="mb-1">
-          <b-col cols="3">Category</b-col>
-          <b-col>
-            <b-form-select
-                v-model="selectedCategory"
-                :options="categoriesAsOptions"
-                v-on:change="setCategory"
-              ></b-form-select>
-          </b-col>
-        </b-row>
-      </div>
-    </b-modal>
   </b-container>
 </div>
 </template>
 
 <script>
+
+//todo update Recipe in table on submit (in ingredient it updates but here not ??)
+
 import axios from 'axios'
   export default {
     data() {
@@ -189,21 +148,18 @@ import axios from 'axios'
         deploy_to : process.env.VUE_APP_DATABASE,
         items: [],
         show: false,
-        ingredient: null,
-        editedIngredient: null, //this.ingredient before submission
-        categoriesAsOptions: [],
-        categories: [],
-        selectedCategory: "",
+        recipe: null,
         fields: [
-          { key: 'id', label: 'Ingredient Id', sortable: true, class: 'text-center' },
-          { key: 'category.name', label: 'Category', sortable: true, class: 'text-center' },
+          { key: 'id', label: 'Recipe Id', sortable: true, class: 'text-center' },
+          { key: 'name', label: 'Recipe Name', sortable: true, class: 'text-center'},
+          { key: 'validated', label: 'Valid', sortable: true, class: 'text-center' },
           { key: 'actions', label: 'Actions' }
         ],
         totalRows: 1,
         currentPage: 1,
         perPage: 10,
         pageOptions: [5, 10, 15],
-        sortBy: '',
+        sortBy: 'id',
         sortDesc: false,
         sortDirection: 'asc',
         filter: null,
@@ -221,7 +177,7 @@ import axios from 'axios'
       }
     },
     mounted (){
-        axios.get(this.deploy_to + 'backoffice/ingredients/',{headers: {
+        axios.get(this.deploy_to + 'backoffice/recipes/',{headers: {
                 'Authorization': `${this.$store.getters.getTokenToSend}`
             }})
             .then(response => {
@@ -229,27 +185,19 @@ import axios from 'axios'
                 this.totalRows = this.items.length
                 })
             .catch(error => {
-                this.showErr(error)
-                console.log(error)
-            }),
-            axios.get(this.deploy_to + 'category/', {headers: {
-                'Authorization': `Token ${this.$store.getters.getToken}`
-            }}).then(resp => {
-                this.categories = resp.data.results
-                for(var i=0;i<this.categories.length;i++){
-                  this.categoriesAsOptions.push({"value":this.categories[i],"text":this.categories[i].name})
-                }
-            }).catch(errors => {
-                this.showErr(errors)
-                console.log(errors)
+            console.log(error)
             })
     },
 
     methods: {
-      info(item) {
-        this.editedIngredient = item
-        this.selectedCategory = {"value":this.editedIngredient.category,"text":this.editedIngredient.category.name}
-        this.show=true
+      async getRecipe(id){
+        return axios.get(this.deploy_to + `backoffice/recipe/${id}/`, {headers: {
+            'Authorization': `Token ${this.$store.getters.getToken}`}})
+                .then(resp => resp.data)
+                .catch(errors => {
+                    this.showErr(errors)
+                    console.log(errors)
+                })
       },
       showErr(msg){
           this.err = msg
@@ -259,27 +207,35 @@ import axios from 'axios'
           this.success = msg
           setTimeout(() => this.success = null, 3000);
       },
-      setCategory(){
-        this.editedIngredient.category = this.selectedCategory
-      }
-      ,
       onFiltered(filteredItems) {
         this.totalRows = filteredItems.length
         this.currentPage = 1
       },
+      editRecipe(id){
+        this.$store.commit('editRecipe', id)
+        this.$router.push("/addRecipe")
+      },
       handleSubmit() {
         //todo add confirm modal before submit
-        this.ingredient = this.editedIngredient
-        axios.post(this.deploy_to + 'backoffice/edit/ingredient/'+this.ingredient.id+"/", this.ingredient, {headers: {
+        axios.post(this.deploy_to + 'backoffice/edit/recipe/'+this.recipe.id+"/", this.recipe, {headers: {
                 'Authorization': `Token ${this.$store.getters.getToken}`}})
                     .then((response) => {
-                        this.showSuccess("Success")
+                        this.showSuccess("status "+response.status)
                         console.log(response);
                     })
                     .catch(errors => {
                         this.showErr(errors)
-                        console.log(errors.status)
+                        console.log(errors)
                     })
+      },
+      async showRecipeDetails(row){
+        this.recipe = await this.getRecipe(row.item.id)
+        row.item["recipe"] = this.recipe
+        row.toggleDetails()
+      },
+      recipeToText(item){
+        const recipe = item.recipe
+        return "<b>id:</b>" + recipe.id + "\n<b>name:</b>: " + recipe.name + "\n<b>dish:</b> " + (recipe.dishType != null ? recipe.dishType.name : "null") + "\n<b>validated:</b> " + recipe.validated + "\n<b>readyIn:</b> " + recipe.readyInMinutes + "\n<b>prepareTime:</b> " + recipe.prepareInMinutes + "\n<b>description:</b> " + recipe.description + "\n<b>difficulty:</b> " + recipe.difficulty + "\n<b>serves:</b> " + recipe.serves + "\n<b>utensils:</b> " + recipe.utensils.map(u => u.name).join(', ') + "\n<b>ingredients:</b> " + recipe.ingredients.map(i => "" + i.quantity + " " + i.measureName + " " + i.ingredientName).join('; ') + "\n<b>steps:</b> " + recipe.instructions.length  
       }
     }
   }

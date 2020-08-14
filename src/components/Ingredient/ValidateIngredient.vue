@@ -28,24 +28,6 @@
 
       <b-col lg="6" class="my-1">
         <b-form-group
-          label="Initial sort"
-          label-cols-sm="3"
-          label-align-sm="right"
-          label-size="sm"
-          label-for="initialSortSelect"
-          class="mb-0"
-        >
-          <b-form-select
-            v-model="sortDirection"
-            id="initialSortSelect"
-            size="sm"
-            :options="['asc', 'desc', 'last']"
-          ></b-form-select>
-        </b-form-group>
-      </b-col>
-
-      <b-col lg="6" class="my-1">
-        <b-form-group
           label="Filter"
           label-cols-sm="3"
           label-align-sm="right"
@@ -64,21 +46,6 @@
               <b-button :disabled="!filter" @click="filter = ''">Clear</b-button>
             </b-input-group-append>
           </b-input-group>
-        </b-form-group>
-      </b-col>
-
-      <b-col lg="6" class="my-1">
-        <b-form-group
-          label="Filter On"
-          label-cols-sm="3"
-          label-align-sm="right"
-          label-size="sm"
-          description="Leave all unchecked to filter on all data"
-          class="mb-0">
-          <b-form-checkbox-group v-model="filterOn" class="mt-1">
-            <b-form-checkbox value="id">Id</b-form-checkbox>
-            <b-form-checkbox value="validated">Valid</b-form-checkbox>
-          </b-form-checkbox-group>
         </b-form-group>
       </b-col>
 
@@ -130,10 +97,11 @@
       :sort-by.sync="sortBy"
       :sort-desc.sync="sortDesc"
       :sort-direction="sortDirection"
+      :default-sort="['id', 'asc']"
       @filtered="onFiltered"
     >
       <template v-slot:cell(name)="row">
-        {{ row.value.first }} {{ row.value.last }}
+        {{ row.value }}
       </template>
 
       <template v-slot:cell(actions)="row">
@@ -148,34 +116,60 @@
 
       <template v-slot:row-details="row">
         <b-card>
-          <ul>
-            <li v-for="(value, key) in row.item" :key="key">{{ key }}: {{ value }}</li>
-          </ul>
+          <b-row align-v='center' justify='center'>
+            <b-col cols="4">
+              <b-img thumbnail fluid right :src=row.item.img></b-img>
+            </b-col>
+            <b-col cols="4">
+              <p class="text-left mx-10" v-html="showIngredientDetails(row.item).replace(/(?:\r\n|\r|\n)/g, '<br />')"></p>
+            </b-col>
+          </b-row>
         </b-card>
       </template>
     </b-table>
-    <!-- Info modal -->
+    <!-- EDIT INGREDIENT -->
     <b-modal 
       v-model="show"
+      ok-title="Update Ingredient"
       @ok="handleSubmit"
       >
-      <div v-if="recipe">
-        <pre>{{recipe}}</pre>
+      <div v-if="editedIngredient">
+        <b-row align='center'>
+            <b-col cols="4">
+              <img align='right' :src=editedIngredient.img>
+            </b-col>
+            <b-col cols="8">
+              <p class="text-left mx-10" v-html="showIngredientDetails(editedIngredient).replace(/(?:\r\n|\r|\n)/g, '<br />')"></p>
+            </b-col>
+          </b-row>
+        <!--<p><b>Ingredient name:</b> {{ingredient.name}}</p>
+        <p><b>Category:</b> {{ingredient.category}}</p>-->
         <b-row class="mb-1">
-          <b-col cols="3">Cuisine</b-col>
+          <b-col cols="12"><b-form-input v-model="editedIngredient.img" id="input-small" size="sm" placeholder="Image url"></b-form-input></b-col>
+          <b-col cols="3">Category</b-col>
           <b-col>
             <b-form-select
-                v-model="selectedCuisine"
-                :options="cuisinesAsOptions"
-                v-on:change="setCuisine"
+                v-model="selectedCategory"
+                :options="categoriesAsOptions"
+                value-field="value"
+                text-field="text"
+                v-on:change="setCategory"
               ></b-form-select>
           </b-col>
         </b-row>
-        <b-row class="mb-1">   
-            <b-col>
-                <b-button variant="danger" v-on:click="recipe.validated=false" v-show="recipe.validated">Invalidate Recipe</b-button>
-                <b-button variant="success" v-on:click="recipe.validated=true" v-show="!recipe.validated">Validate Recipe</b-button>
-            </b-col> 
+        <b-row class="mb-1">
+          <b-col cols="12">
+            <b-form-group label="Exclude from Diets">
+              <b-form-checkbox
+              v-for="diet in diets"
+              v-model="selectedDiets"
+              :key="diet.id"
+              :value="diet"
+              inline>
+                {{ diet.name }}
+              </b-form-checkbox>
+            </b-form-group>
+          </b-col>
         </b-row>
       </div>
     </b-modal>
@@ -184,9 +178,6 @@
 </template>
 
 <script>
-
-//todo update Recipe in table on submit (in ingredient it updates but here not ??)
-
 import axios from 'axios'
   export default {
     data() {
@@ -196,20 +187,24 @@ import axios from 'axios'
         deploy_to : process.env.VUE_APP_DATABASE,
         items: [],
         show: false,
-        recipe: null,
-        cuisinesAsOptions: [],
-        cuisines: [],
-        selectedCuisine: "",
+        ingredient: null,
+        editedIngredient: null, //this.ingredient before submission
+        categoriesAsOptions: [],
+        categories: [],
+        diets: [],
+        selectedCategory: "",
+        selectedDiets: [],
         fields: [
-          { key: 'id', label: 'Recipe Id', sortable: true, class: 'text-center' },
-          { key: 'validated', label: 'Valid', sortable: true, class: 'text-center' },
+          { key: 'id', label: 'Ingredient Id', sortable: true, class: 'text-center' },
+          { key: 'name', label: 'Name', sortable: true, class: 'text-center' },
+          { key: 'category.name', label: 'Category', sortable: true, class: 'text-center' },
           { key: 'actions', label: 'Actions' }
         ],
         totalRows: 1,
         currentPage: 1,
         perPage: 10,
         pageOptions: [5, 10, 15],
-        sortBy: '',
+        sortBy: 'id',
         sortDesc: false,
         sortDirection: 'asc',
         filter: null,
@@ -227,7 +222,7 @@ import axios from 'axios'
       }
     },
     mounted (){
-        axios.get(this.deploy_to + 'backoffice/recipes/',{headers: {
+        axios.get(this.deploy_to + 'backoffice/ingredients/',{headers: {
                 'Authorization': `${this.$store.getters.getTokenToSend}`
             }})
             .then(response => {
@@ -235,15 +230,24 @@ import axios from 'axios'
                 this.totalRows = this.items.length
                 })
             .catch(error => {
-            console.log(error)
+                this.showErr(error)
+                console.log(error)
             }),
-            axios.get(this.deploy_to + 'cuisine/', {headers: {
+            axios.get(this.deploy_to + 'category/', {headers: {
                 'Authorization': `Token ${this.$store.getters.getToken}`
             }}).then(resp => {
-                this.cuisines = resp.data.results
-                for(var i=0;i<this.cuisines.length;i++){
-                  this.cuisinesAsOptions.push({"value":this.cuisines[i],"text":this.cuisines[i].name})
+                this.categories = resp.data.results
+                for(var i=0;i<this.categories.length;i++){
+                  this.categoriesAsOptions.push({"value":this.categories[i],"text":this.categories[i].name})
                 }
+            }).catch(errors => {
+                this.showErr(errors)
+                console.log(errors)
+            }),
+            axios.get(this.deploy_to + 'diet/', {headers: {
+                'Authorization': `Token ${this.$store.getters.getToken}`
+            }}).then(resp => {
+                this.diets = resp.data.results
             }).catch(errors => {
                 this.showErr(errors)
                 console.log(errors)
@@ -252,17 +256,10 @@ import axios from 'axios'
 
     methods: {
       info(item) {
-        axios.get(this.deploy_to + 'backoffice/recipe/'+item.id+"/", {headers: {
-            'Authorization': `Token ${this.$store.getters.getToken}`}})
-                .then((response) => {
-                    this.recipe = response.data
-                    this.selectedCuisine = {"value":this.recipe.cuisine,"text":this.recipe.cuisine.name}
-                    this.show=true
-                })
-                .catch(errors => {
-                    this.showErr(errors)
-                    console.log(errors)
-                })
+        this.editedIngredient = item
+        this.selectedCategory = {"value":this.editedIngredient.category,"text":this.editedIngredient.category.name}
+        this.selectedDiets = this.editedIngredient.diets
+        this.show=true
       },
       showErr(msg){
           this.err = msg
@@ -272,8 +269,12 @@ import axios from 'axios'
           this.success = msg
           setTimeout(() => this.success = null, 3000);
       },
-      setCuisine(){
-        this.recipe.cuisine = this.selectedCuisine
+      showIngredientDetails(item){
+        var details = "id:" + item.id + "\nname: " + item.name + "\ncategory: " + item.category.name + "\ndiets: " + item.diets.map(d => d.name) + "\ndeleted: " + item.is_deleted 
+        return details
+      },
+      setCategory(){
+        this.editedIngredient.category = this.selectedCategory
       }
       ,
       onFiltered(filteredItems) {
@@ -282,15 +283,17 @@ import axios from 'axios'
       },
       handleSubmit() {
         //todo add confirm modal before submit
-        axios.post(this.deploy_to + 'backoffice/edit/recipe/'+this.recipe.id+"/", this.recipe, {headers: {
+        this.editedIngredient.diets = this.selectedDiets
+        this.ingredient = this.editedIngredient
+        axios.post(this.deploy_to + 'backoffice/edit/ingredient/'+this.ingredient.id+"/", this.ingredient, {headers: {
                 'Authorization': `Token ${this.$store.getters.getToken}`}})
                     .then((response) => {
-                        this.showSuccess("status "+response.status)
+                        this.showSuccess("Success")
                         console.log(response);
                     })
                     .catch(errors => {
                         this.showErr(errors)
-                        console.log(errors)
+                        console.log(errors.status)
                     })
       }
     }
