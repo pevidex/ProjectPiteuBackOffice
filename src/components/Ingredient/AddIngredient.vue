@@ -67,8 +67,8 @@ export default {
             currentIngredient: {
                 "name" : '',
                 "img" : '',
-                "category" : [],
-                "diets": []
+                "category" : undefined,
+                "diets": undefined
             },
             categories : [],
             diets : [],
