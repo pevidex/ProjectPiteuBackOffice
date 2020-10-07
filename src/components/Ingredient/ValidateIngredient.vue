@@ -123,6 +123,10 @@
             <b-col cols="4">
               <p class="text-left mx-10" v-html="showIngredientDetails(row.item).replace(/(?:\r\n|\r|\n)/g, '<br />')"></p>
             </b-col>
+            <b-col cols=12>
+                <b-button variant="danger" v-on:click="row.item.is_valid=false; handleSubmit(row.item)" v-show="row.item.is_valid">Invalidate Ingredient</b-button>
+                <b-button variant="success" v-on:click="row.item.is_valid=true; handleSubmit(row.item)" v-show="!row.item.is_valid">Validate Ingredient</b-button>
+            </b-col>
           </b-row>
         </b-card>
       </template>
@@ -270,7 +274,8 @@ import axios from 'axios'
           setTimeout(() => this.success = null, 3000);
       },
       showIngredientDetails(item){
-        var details = "id:" + item.id + "\nname: " + item.name + "\ncategory: " + item.category.name + "\ndiets: " + item.diets.map(d => d.name) + "\ndeleted: " + item.is_deleted 
+        this.editedIngredient = item
+        var details = "id:" + item.id + "\nname: " + item.name + "\ncategory: " + item.category.name + "\ndiets: " + item.diets.map(d => d.name) + "\nvalid: " + item.is_valid + "\ndeleted: " + item.is_deleted 
         return details
       },
       setCategory(){
