@@ -143,7 +143,7 @@ export default {
                     name: this.currentIngredient.name,
                     img: imageUrl,
                     category: this.currentIngredient.category,
-                    diets: this.currentIngredient.diets.map(d => d.id)
+                    diets: this.currentIngredient.diets ? this.currentIngredient.diets.map(d => d.id) : []
                 }
                 console.log(ingredient)
                 axios.post(this.deploy_to + 'ingredient/', ingredient,{headers: {
