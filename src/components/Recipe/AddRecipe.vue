@@ -261,7 +261,7 @@ export default {
                 utensils: this.utensils,
                 recipeIngredients: this.parseRecipeIngredients(),
                 instructions: this.parseInstructions(),
-                validated : true
+                is_valid : true
             }
             if(!this.validateRecipe(recipe)){
                 return;

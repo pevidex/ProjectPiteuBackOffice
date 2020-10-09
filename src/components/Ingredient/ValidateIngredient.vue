@@ -123,6 +123,10 @@
             <b-col cols="4">
               <p class="text-left mx-10" v-html="showIngredientDetails(row.item).replace(/(?:\r\n|\r|\n)/g, '<br />')"></p>
             </b-col>
+            <b-col cols=12>
+                <b-button variant="danger" v-on:click="row.item.is_valid=false; handleSubmit(row.item)" v-show="row.item.is_valid">Invalidate Ingredient</b-button>
+                <b-button variant="success" v-on:click="row.item.is_valid=true; handleSubmit(row.item)" v-show="!row.item.is_valid">Validate Ingredient</b-button>
+            </b-col>
           </b-row>
         </b-card>
       </template>
@@ -259,59 +263,58 @@ export default {
               console.log(errors)
           })
   },
-
   methods: {
-    info(item) {
-      this.editedIngredient = item
-      this.editedIngredient.originalImg = item.img
-      this.selectedCategory = {"value":this.editedIngredient.category,"text":this.editedIngredient.category.name}
-      this.selectedDiets = this.editedIngredient.diets
-      this.show=true
-    },
-    showErr(msg){
-        this.err = msg
-        setTimeout(() => this.err = null, 3000);
-    },
-    showSuccess(msg){
-        this.success = msg
-        setTimeout(() => this.success = null, 3000);
-    },
-    showIngredientDetails(item){
-      var details = "id:" + item.id + "\nname: " + item.name + "\ncategory: " + item.category.name + "\ndiets: " + item.diets.map(d => d.name) + "\ndeleted: " + item.is_deleted 
-      return details
-    },
-    setCategory(){
-      this.editedIngredient.category = this.selectedCategory
-    }
-    ,
-    onFiltered(filteredItems) {
-      this.totalRows = filteredItems.length
-      this.currentPage = 1
-    },
-    async handleSubmit() {
-      this.editedIngredient.diets = this.selectedDiets
-      this.ingredient = this.editedIngredient
-
-      if(this.editedIngredient.originalImg != this.editedIngredient.img){
-        if(this.uploadedImgEdit){
-          //Upload local img to S3
-          let fileName = this.generateImageName(this.uploadedImgEdit, this.editedIngredient)
-          this.editedIngredient.img = await uploadImageFileToS3(this.deploy_to, this.$store.getters.getToken, this.uploadedImgEdit, fileName)
-        } else {
-          //TODO Upload external img to S3 INSTEAD OF using external url
-        }
+      info(item) {
+        this.editedIngredient = item
+        this.selectedCategory = {"value":this.editedIngredient.category,"text":this.editedIngredient.category.name}
+        this.selectedDiets = this.editedIngredient.diets
+        this.show=true
+      },
+      showErr(msg){
+          this.err = msg
+          setTimeout(() => this.err = null, 3000);
+      },
+      showSuccess(msg){
+          this.success = msg
+          setTimeout(() => this.success = null, 3000);
+      },
+      showIngredientDetails(item){
+        this.editedIngredient = item
+        var details = "id:" + item.id + "\nname: " + item.name + "\ncategory: " + item.category.name + "\ndiets: " + item.diets.map(d => d.name) + "\nvalid: " + item.is_valid + "\ndeleted: " + item.is_deleted 
+        return details
+      },
+      setCategory(){
+        this.editedIngredient.category = this.selectedCategory
       }
-      console.log(this.editedIngredient)
-      axios.post(this.deploy_to + 'backoffice/edit/ingredient/'+this.ingredient.id+"/", this.editedIngredient, {headers: {
-              'Authorization': `Token ${this.$store.getters.getToken}`}})
-                  .then((response) => {
-                      this.showSuccess("Success")
-                      console.log(response);
-                  })
-                  .catch(errors => {
-                      this.showErr(errors)
-                      console.log(errors.status)
-                  })
+      ,
+      onFiltered(filteredItems) {
+        this.totalRows = filteredItems.length
+        this.currentPage = 1
+      },
+      async handleSubmit() {
+        //todo add confirm modal before submit
+        this.editedIngredient.diets = this.selectedDiets
+        this.ingredient = this.editedIngredient
+
+        if(this.editedIngredient.originalImg != this.editedIngredient.img){
+          if(this.uploadedImgEdit){
+            //Upload local img to S3
+            let fileName = this.generateImageName(this.uploadedImgEdit, this.editedIngredient)
+            this.editedIngredient.img = await uploadImageFileToS3(this.deploy_to, this.$store.getters.getToken, this.uploadedImgEdit, fileName)
+          } else {
+            //TODO Upload external img to S3 INSTEAD OF using external url
+          }
+        }
+        axios.post(this.deploy_to + 'backoffice/edit/ingredient/'+this.ingredient.id+"/", this.editedIngredient, {headers: {
+                'Authorization': `Token ${this.$store.getters.getToken}`}})
+                    .then((response) => {
+                        this.showSuccess("Success")
+                        console.log(response);
+                    })
+                    .catch(errors => {
+                        this.showErr(errors)
+                        console.log(errors.status)
+                    })
     },
     preview_edit_image(file){
           if(file){
