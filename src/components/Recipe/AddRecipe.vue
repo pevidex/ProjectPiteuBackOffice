@@ -194,11 +194,21 @@ export default {
         }
     },
     mounted (){
-        const requestIngredient = axios.get(this.deploy_to + 'ingredient/' )
-        const requestMeasure = axios.get(this.deploy_to + 'measure/')
-        const requestUtensils = axios.get(this.deploy_to + 'utensil/')
-        const requestCuisines = axios.get(this.deploy_to + 'utensil/')
-        const requestDishes = axios.get(this.deploy_to + 'dishtype/')
+        const requestIngredient = axios.get(this.deploy_to + 'ingredient/', {headers: {
+                'Authorization': `${this.$store.getters.getTokenToSend}`
+        }} )
+        const requestMeasure = axios.get(this.deploy_to + 'measure/', {headers: {
+                'Authorization': `${this.$store.getters.getTokenToSend}`
+        }})
+        const requestUtensils = axios.get(this.deploy_to + 'utensil/', {headers: {
+                'Authorization': `${this.$store.getters.getTokenToSend}`
+        }})
+        const requestCuisines = axios.get(this.deploy_to + 'utensil/', {headers: {
+                'Authorization': `${this.$store.getters.getTokenToSend}`
+        }})
+        const requestDishes = axios.get(this.deploy_to + 'dishtype/',{headers: {
+                'Authorization': `${this.$store.getters.getTokenToSend}`
+        }})
 
         const editRecipeId = this.$store.getters.getRecipeToEdit
         if(editRecipeId != null && editRecipeId > 0){
