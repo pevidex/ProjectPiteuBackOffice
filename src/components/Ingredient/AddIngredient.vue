@@ -53,6 +53,8 @@
 import axios from 'axios'
 import Vue from 'vue'
 
+var utils = require('../../utils');
+
 export default {
     name: "AddIngredients",
     data(){
@@ -98,12 +100,20 @@ export default {
                 }
             }
             return false
-        },
+        }
+        ,
+        setLocalUrl(url){
+            this.uploadedUrl = url;
+        }
+        ,
+        setLocalFile(file){
+            this.uploadedFile = file;
+        }
+        ,
         preview_image(file){
             if(file){
-                this.uploadedUrl = URL.createObjectURL(file);
+                utils.createImageObject(file,this);
                 this.currentIngredient.img = this.uploadedUrl
-                this.uploadedFile = file
             } else {
                 this.uploadedUrl = null
                 this.uploadedFile = null
@@ -162,6 +172,7 @@ export default {
             return this.currentIngredient.category + "_" + this.currentIngredient.name.replace(/[^a-z0-9]/gi, '_').toLowerCase() + randomInt + fileExtension
         },
         async uploadImageToStorage(){
+            console.log("uploaded image")
             const fileName = this.generateImageName()
             const signedUrl = await this.getSignedUrl(fileName)
             var bodyFormData = new FormData()

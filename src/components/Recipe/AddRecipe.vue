@@ -159,6 +159,8 @@
 import axios from 'axios'
 import Vue from 'vue'
 
+var utils = require('../../utils');
+
 export default {
     name: "AddRecipe",
     components: {
@@ -436,10 +438,17 @@ export default {
             this.currentIngredient = null;
             this.optional = false;
         },
+        setLocalUrl(url){
+            this.url = url;
+        }
+        ,
+        setLocalFile(file){
+            this.file = file;
+        }
+        ,
         preview_image(file){
             if(file){
-                this.url = URL.createObjectURL(file);
-                this.file = file
+                utils.createImageObject(file,this);
             } else {
                 this.url = null;
                 this.file = null;
