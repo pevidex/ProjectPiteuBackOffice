@@ -38,7 +38,7 @@
                 <v-col cols="12" class="form-group">
                     <v-file-input prepend-icon="mdi-camera" show-size label="Upload Photo" @change="preview_image" />
                     <span>OR</span>
-                    <v-text-field label="URL" v-model="currentIngredient.img"></v-text-field>
+                    <v-text-field label="URL" v-model="currentIngredient.img" @change="download_image"></v-text-field>
                 </v-col>
                 <button type="submit" class="btn btn-primary" >Submit</button>
             </v-row>
@@ -110,9 +110,15 @@ export default {
             this.uploadedFile = file;
         }
         ,
+        download_image(){
+            if(this.currentIngredient.img != ""){
+                utils.downloadImageFile(this.currentIngredient.img, this);
+            }
+        }
+        ,
         preview_image(file){
             if(file){
-                utils.createImageObject(file,this);
+                utils.processImageFile(file,this,true);
                 this.currentIngredient.img = this.uploadedUrl
             } else {
                 this.uploadedUrl = null
@@ -147,7 +153,8 @@ export default {
                 if(this.uploadedUrl != null){
                     imageUrl = await this.uploadImageToStorage()
                 } else {
-                    imageUrl = this.currentIngredient.img
+                    console.log("image is not downloaded");
+                    //imageUrl = this.currentIngredient.img
                 }
                 const ingredient = {
                     name: this.currentIngredient.name,
@@ -180,7 +187,7 @@ export default {
                 bodyFormData.append(key, signedUrl.fields[key]);
             })
             bodyFormData.append('file', this.uploadedFile, fileName)
-            
+            console.log("name: "+fileName+" size: "+this.uploadedFile.size+" type: "+this.uploadedFile.type);
             //Remove default headers for S3 Communication
             var axiosForS3 = axios.create();
             delete axiosForS3.defaults.headers.common['Authorization'];
