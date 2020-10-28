@@ -14,7 +14,7 @@
                     <v-img contain height="150px" v-if="url" :src="url"></v-img>
                     <v-file-input prepend-icon="mdi-camera" show-size label="Recipe Photo" @change="preview_image" />
                     <span>OR</span>
-                    <v-text-field label="URL" v-model="url"></v-text-field>
+                    <v-text-field label="URL" v-model="url" @change="download_image"></v-text-field>
      
 
                     <v-form>
@@ -439,6 +439,7 @@ export default {
             this.optional = false;
         },
         setLocalUrl(url){
+            console.log("set url")
             this.url = url;
         }
         ,
@@ -446,9 +447,15 @@ export default {
             this.file = file;
         }
         ,
+        download_image(){
+            if(this.url != ""){
+                utils.downloadImageFile(this.url, this);
+            }
+        }
+        ,
         preview_image(file){
             if(file){
-                utils.createImageObject(file,this);
+                utils.processImageFile(file,this,true);
             } else {
                 this.url = null;
                 this.file = null;
