@@ -177,7 +177,7 @@ export default {
             numberServes: null,
             prepTime: null,
             totalTime: null, 
-            utensils: null,
+            utensils: [],
             difficultyOptions: ['Easy', 'Medium', 'Hard'],
             description: null,
             currentIngredient: null,
@@ -241,8 +241,25 @@ export default {
             this.success = msg
             setTimeout(() => this.success = null, 3000);
         },
+        clearForms(){
+            this.importId = null
+            this.recipeName = null
+            this.url = null
+            this.file = null
+            this.description = null
+            this.dish = null
+            this.numberServes = null
+            this.prepTime = null
+            this.totalTime = null
+            this.difficulty = null
+            this.utensils = []
+            this.added_ingredients = []
+            this.instructions = []
+            this.measure = null
+            this.quantity = null
+            this.optional = false
+        },
         async submitRecipe(){
-
             var imageUrl = ""
             if(this.file != null){
                 imageUrl = await this.uploadImageToStorage()
@@ -284,6 +301,7 @@ export default {
                     'Authorization': `Token ${this.$store.getters.getToken}`}})
                 .then((response) => {
                     this.showSuccess("Recipe Updated Successfully ")
+                    this.clearForms()
                 })
                 .catch(errors => {
                     console.log(errors)
@@ -295,6 +313,7 @@ export default {
                     'Authorization': `Token ${this.$store.getters.getToken}`}})
                 .then((response) => {
                     this.showSuccess("status "+response.status)
+                    this.clearForms()
                 })
                 .catch(errors => {
                     console.log("Tried to create recipe, error: " + errors)
