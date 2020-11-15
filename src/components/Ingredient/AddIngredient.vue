@@ -38,7 +38,7 @@
                 <v-col cols="12" class="form-group">
                     <v-file-input prepend-icon="mdi-camera" show-size label="Upload Photo" @change="preview_image" />
                     <span>OR</span>
-                    <v-text-field label="URL" v-model="currentIngredient.img" @change="download_image"></v-text-field>
+                    <v-text-field label="URL" v-model="currentIngredient.img" @input="download_image"></v-text-field>
                 </v-col>
                 <button type="submit" class="btn btn-primary" >Submit</button>
             </v-row>
@@ -111,8 +111,10 @@ export default {
         }
         ,
         download_image(){
+            console.log("downloading image")
             if(this.currentIngredient.img != ""){
-                utils.downloadImageFile(this.currentIngredient.img, this);
+                let proxy = "https://yacdn.org/proxy/"
+                utils.downloadImageFile(proxy + this.currentIngredient.img, this);
             }
         }
         ,
@@ -136,7 +138,7 @@ export default {
                 this.showErr("Name is too short");
                 return false
             }
-            if(!this.isImageLoaded){
+            if(!this.isImageLoaded && !this.uploadedUrl){
                 this.showErr("You must upload an image");
                 return false
             }
@@ -151,7 +153,7 @@ export default {
                 console.log("VALID")
                 var imageUrl = ""
                 if(this.uploadedUrl != null){
-                    imageUrl = await this.uploadImageToStorage()
+                    imageUrl = await this.uploadImageToStorage(this.uploadedUrl)
                 } else {
                     console.log("image is not downloaded");
                     //imageUrl = this.currentIngredient.img
@@ -173,14 +175,15 @@ export default {
                     this.showErr(errors)
                 })
             }
-        }, generateImageName(){
-            const fileExtension = "." + this.uploadedFile.name.split('.').pop();
+        }, generateImageName(filename){
+            console.log("generating image name from: " + filename)
+            const fileExtension = "." + filename.split('.').pop();
             const randomInt = "_" + Math.floor(Math.random() * 10000)
             return this.currentIngredient.category + "_" + this.currentIngredient.name.replace(/[^a-z0-9]/gi, '_').toLowerCase() + randomInt + fileExtension
         },
-        async uploadImageToStorage(){
+        async uploadImageToStorage(filename){
             console.log("uploaded image")
-            const fileName = this.generateImageName()
+            const fileName = this.generateImageName(filename)
             const signedUrl = await this.getSignedUrl(fileName)
             var bodyFormData = new FormData()
             Object.keys(signedUrl.fields).forEach(key => {
