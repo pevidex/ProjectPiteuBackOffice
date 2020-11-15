@@ -258,6 +258,7 @@ export default {
             this.measure = null
             this.quantity = null
             this.optional = false
+            this.resetIngredientsForm()
         },
         async submitRecipe(){
             var imageUrl = ""

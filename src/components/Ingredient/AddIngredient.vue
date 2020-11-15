@@ -88,7 +88,14 @@ export default {
             this.success = msg
             setTimeout(() => this.success = null, 3000);
         },
-
+        clearForms(){
+            this.name = null
+            this.category = null
+            this.diets = null
+            this.uploadedUrl = null
+            this.uploadedFile = null
+            this.currentIngredient = null
+        },
         ingredientNameNormalization(name){
             return name.toLowerCase().replace(/ /g, '-')
         },
@@ -169,6 +176,7 @@ export default {
                     'Authorization': `Token ${this.$store.getters.getToken}`}})
                 .then((response) => {
                     this.showSuccess("status "+response.status)
+                    this.clearForms()
                 })
                 .catch(errors => {
                     console.log(errors)
