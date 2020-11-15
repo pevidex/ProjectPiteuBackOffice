@@ -122,12 +122,12 @@
                                         </v-row>
                                         <v-row>
                                             <v-col cols="12">
-                                                <div class="ml-5 d-flex flex-row" v-for="ingredient in added_ingredients" :key="ingredient.id" align="center">
-                                                        <span class="mx-2" >{{ingredient.measure.name}}</span>
-                                                        <span class="mx-2">{{ingredient.quantity}}</span>
-                                                        <span class="mx-2">{{ingredient.name}}</span>
-                                                        <span v-text="ingredient.optional ? 'optional' : 'required'"></span>
-                                                        <v-btn class="mx-2" x-small icon color="red" @click="removeIngredient(ingredient)">
+                                                <div class="ml-5 d-flex flex-row" v-for="recipeIngredient in added_ingredients" :key="recipeIngredient.ingredient.id" align="center">
+                                                        <span class="mx-2" >{{recipeIngredient.measure.name}}</span>
+                                                        <span class="mx-2">{{recipeIngredient.quantity}}</span>
+                                                        <span class="mx-2">{{recipeIngredient.ingredient.name}}</span>
+                                                        <span v-text="recipeIngredient.optional ? 'optional' : 'required'"></span>
+                                                        <v-btn class="mx-2" x-small icon color="red" @click="removeRecipeIngredient(recipeIngredient)">
                                                             <v-icon>mdi-close</v-icon>
                                                         </v-btn>
                                                 </div>
@@ -242,7 +242,7 @@ export default {
             setTimeout(() => this.success = null, 3000);
         },
         async submitRecipe(){
-            console.log("trying to submit recipe");
+
             var imageUrl = ""
             if(this.file != null){
                 imageUrl = await this.uploadImageToStorage()
@@ -265,12 +265,13 @@ export default {
                 instructions: this.parseInstructions(),
                 is_valid : true
             }
+
             if(!this.validateRecipe(recipe)){
                 return;
             }
 
             console.log(recipe);
-            //TODO
+            //TODO make sure importId is not associated with current recipe
             if(this.importId == null || this.importId < 1){
                 this.sendNewRecipeRequest(recipe);
             } else {
@@ -369,13 +370,13 @@ export default {
         parseRecipeIngredients(){
             var recipeIngredients = []
             this.added_ingredients.forEach(function(item){
-                var ingredient = {
-                    measure: item.measure.name,
+                var recipeIngredient = {
+                    measure: item.measure.id,
                     quantity: item.quantity,
                     optional: item.optional,
-                    id: item.id
+                    ingredient: item.ingredient.id
                 }
-                recipeIngredients.push(ingredient)
+                recipeIngredients.push(recipeIngredient)
             })
             return recipeIngredients
         },
@@ -388,9 +389,9 @@ export default {
             rawInstructions.forEach(function(item){
                 var newInstruction = {
                     step: steps,
-                    instruction: item
+                    instruction_description: item
                 }
-                if(newInstruction.instruction != ""){
+                if(newInstruction.instruction_description != ""){
                     parsedInstructions.push(newInstruction);
                     steps++;
                 }
@@ -398,37 +399,36 @@ export default {
             return parsedInstructions;
         },
         addIngredient(){
-            var ingredient = {
+            var recipeIngredient = {
                 measure: this.measure,
                 quantity: this.quantity,
                 optional: this.optional,
-                name: this.currentIngredient.name,
-                id: this.currentIngredient.id
+                ingredient: {id: this.currentIngredient.id, name: this.currentIngredient.name},
             }
-            if(this.validateIngredient(ingredient)){
+            if(this.validateRecipeIngredient(recipeIngredient)){
                 this.resetIngredientsForm();
-                this.addOrReplaceInIngredientList(ingredient)
+                this.addOrReplaceInIngredientList(recipeIngredient)
             }
         },
-        addOrReplaceInIngredientList(ingredient){
+        addOrReplaceInIngredientList(recipeIngredient){
             for(var i = 0; i < this.added_ingredients.length; i++){
-                if(this.added_ingredients[i].id === ingredient.id){
+                if(this.added_ingredients[i].ingredient.id === recipeIngredient.ingredient.id){
                     console.log("replaced in list");
-                    this.added_ingredients[i] = ingredient;
+                    this.added_ingredients[i] = recipeIngredient;
                     return;
                 }
             }
-            this.added_ingredients.push(ingredient)
+            this.added_ingredients.push(recipeIngredient)
         },
-        validateIngredient(ingredient){
-            if(ingredient.measure != null && ingredient.quantity > 0 && ingredient.optional != null && ingredient.id != null){
+        validateRecipeIngredient(recipeIngredient){
+            if(recipeIngredient.measure != null && recipeIngredient.quantity > 0 && recipeIngredient.optional != null && recipeIngredient.ingredient != null){
                 return true
             }
             return false
         },
-        removeIngredient(ingredient){
+        removeRecipeIngredient(recipeIngredient){
             for(var i = 0; i < this.added_ingredients.length; i++){
-                if (this.added_ingredients[i].id === ingredient.id) { 
+                if (this.added_ingredients[i].ingredient === recipeIngredient.ingredient) { 
                     this.added_ingredients.splice(i, 1); 
                     return;
                 }
@@ -538,16 +538,16 @@ export default {
             }
         },
         importAddedIngredients(ingredients){
+            console.log(ingredients)
             var addedIngredients = []
             ingredients.forEach(i => {
-                var ingredient = {
+                var recipeIngredient = {
                     measure: {id: i.measure, name: i.measureName},
                     quantity: i.quantity,
                     optional: i.optional,
-                    name: i.ingredientName,
-                    id: i.ingredient
+                    ingredient: {id : i.ingredient, name: i.ingredientName}
                 }
-                addedIngredients.push(ingredient)
+                addedIngredients.push(recipeIngredient)
             })
             return addedIngredients
         },
