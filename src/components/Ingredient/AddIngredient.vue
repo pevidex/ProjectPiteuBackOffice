@@ -36,7 +36,7 @@
                     </v-img>
                 </v-col>
                 <v-col cols="12" class="form-group">
-                    <v-file-input prepend-icon="mdi-camera" show-size label="Upload Photo" @change="preview_image" />
+                    <v-file-input prepend-icon="mdi-camera" show-size label="Upload Photo" @change="preview_image" ref="inputImage"/>
                     <span>OR</span>
                     <v-text-field label="URL" v-model="currentIngredient.img" @input="download_image"></v-text-field>
                 </v-col>
@@ -89,12 +89,15 @@ export default {
             setTimeout(() => this.success = null, 3000);
         },
         clearForms(){
-            this.name = null
-            this.category = null
-            this.diets = null
+            this.currentIngredient = {
+                "name" : '',
+                "img" : '',
+                "category" : undefined,
+                "diets": undefined
+            },
             this.uploadedUrl = null
             this.uploadedFile = null
-            this.currentIngredient = null
+            this.$refs.inputImage.reset()
         },
         ingredientNameNormalization(name){
             return name.toLowerCase().replace(/ /g, '-')
@@ -115,8 +118,13 @@ export default {
         ,
         setLocalFile(file){
             this.uploadedFile = file;
-        }
-        ,
+        },
+        getImageFileName(){
+            if(this.uploadedFile){
+                return this.uploadedFile.name;
+            }
+            return this.uploadedUrl
+        },
         download_image(){
             console.log("downloading image")
             if(this.currentIngredient.img != ""){
@@ -145,7 +153,7 @@ export default {
                 this.showErr("Name is too short");
                 return false
             }
-            if(!this.isImageLoaded && !this.uploadedUrl){
+            if(!this.isImageLoaded || !this.uploadedUrl){
                 this.showErr("You must upload an image");
                 return false
             }
@@ -157,14 +165,11 @@ export default {
         },
         async submitIngredient(){
             if(this.validateIngredient()) {
-                console.log("VALID")
-                var imageUrl = ""
-                if(this.uploadedUrl != null){
-                    imageUrl = await this.uploadImageToStorage(this.uploadedUrl)
-                } else {
-                    console.log("image is not downloaded");
-                    //imageUrl = this.currentIngredient.img
-                }
+                console.log("Ingredient Validated")
+
+                let imageUri = this.getImageFileName();
+                let imageUrl = await this.uploadImageToStorage(imageUri);
+
                 const ingredient = {
                     name: this.currentIngredient.name,
                     img: imageUrl,
@@ -175,7 +180,9 @@ export default {
                 axios.post(this.deploy_to + 'ingredient/', ingredient,{headers: {
                     'Authorization': `Token ${this.$store.getters.getToken}`}})
                 .then((response) => {
+                    console.log(response.data)
                     this.showSuccess("status "+response.status)
+                    console.log("clearing forms")
                     this.clearForms()
                 })
                 .catch(errors => {
