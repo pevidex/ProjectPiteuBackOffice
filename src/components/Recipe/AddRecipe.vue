@@ -158,6 +158,7 @@
 <script>
 import axios from 'axios'
 import Vue from 'vue'
+import { getSignedUrl, uploadImageFileToS3 } from '@/helpers/s3-image-storage'
 
 var utils = require('../../utils');
 
@@ -263,7 +264,8 @@ export default {
         async submitRecipe(){
             var imageUrl = ""
             if(this.file != null){
-                imageUrl = await this.uploadImageToStorage()
+                const fileName = this.generateImageName()
+                imageUrl = await uploadImageFileToS3(this.deploy_to, this.$store.getters.getToken, this.file, fileName);
             } else {
                 imageUrl = this.url
             }
@@ -359,33 +361,6 @@ export default {
             const fileExtension = "." + this.file.name.split('.').pop();
             const randomInt = "_" + Math.floor(Math.random() * 10000)
             return this.recipeName.replace(/[^a-z0-9]/gi, '_').toLowerCase() + randomInt + fileExtension
-        },
-        async uploadImageToStorage(){
-            const fileName = this.generateImageName()
-            const signedUrl = await this.getSignedUrl(fileName)
-            var bodyFormData = new FormData()
-            Object.keys(signedUrl.fields).forEach(key => {
-                bodyFormData.append(key, signedUrl.fields[key]);
-            })
-            bodyFormData.append('file', this.file, fileName)
-            
-            //Remove default headers for S3 Communication
-            var axiosForS3 = axios.create();
-            delete axiosForS3.defaults.headers.common['Authorization'];
-            delete axiosForS3.defaults.headers.common['Content-Type'];
-
-            return axiosForS3.post(signedUrl.url, bodyFormData)
-                            .then(resp => Vue.Constants.S3_STORAGE_BASE_URL + signedUrl.fields["key"])
-                            .catch(errors => {
-                                console.log("S3 ERROR: " + errors)
-                            })
-        },
-        async getSignedUrl(fileName){
-            return axios.post(this.deploy_to + 's3/signed-url/', {"fileName": fileName}, {headers: {'Authorization': `Token ${this.$store.getters.getToken}`}})
-                        .then(resp => resp.data)
-                        .catch(errors => {
-                            console.log("Getting signed url Error: " + errors)
-                        })
         },
         parseRecipeIngredients(){
             var recipeIngredients = []

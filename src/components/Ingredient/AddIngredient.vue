@@ -52,6 +52,7 @@
 <script>
 import axios from 'axios'
 import Vue from 'vue'
+import { getSignedUrl, uploadImageFileToS3 } from '@/helpers/s3-image-storage'
 
 var utils = require('../../utils');
 
@@ -168,7 +169,8 @@ export default {
                 console.log("Ingredient Validated")
 
                 let imageUri = this.getImageFileName();
-                let imageUrl = await this.uploadImageToStorage(imageUri);
+                const fileName = this.generateImageName(imageUri);
+                let imageUrl = await uploadImageFileToS3(this.deploy_to, this.$store.getters.getToken, this.uploadedFile, fileName);
 
                 const ingredient = {
                     name: this.currentIngredient.name,
@@ -195,38 +197,11 @@ export default {
             const fileExtension = "." + filename.split('.').pop();
             const randomInt = "_" + Math.floor(Math.random() * 10000)
             return this.currentIngredient.category + "_" + this.currentIngredient.name.replace(/[^a-z0-9]/gi, '_').toLowerCase() + randomInt + fileExtension
-        },
-        async uploadImageToStorage(filename){
-            console.log("uploaded image")
-            const fileName = this.generateImageName(filename)
-            const signedUrl = await this.getSignedUrl(fileName)
-            var bodyFormData = new FormData()
-            Object.keys(signedUrl.fields).forEach(key => {
-                bodyFormData.append(key, signedUrl.fields[key]);
-            })
-            bodyFormData.append('file', this.uploadedFile, fileName)
-            console.log("name: "+fileName+" size: "+this.uploadedFile.size+" type: "+this.uploadedFile.type);
-            //Remove default headers for S3 Communication
-            var axiosForS3 = axios.create();
-            delete axiosForS3.defaults.headers.common['Authorization'];
-            delete axiosForS3.defaults.headers.common['Content-Type'];
-
-            return axiosForS3.post(signedUrl.url, bodyFormData)
-                            .then(resp => Vue.Constants.S3_STORAGE_BASE_URL + signedUrl.fields["key"])
-                            .catch(errors => {
-                                console.log("S3 ERROR: " + errors)
-                            })
-        },
-        async getSignedUrl(fileName){
-            return axios.post(this.deploy_to + 's3/signed-url/', {"fileName": fileName}, {headers: {'Authorization': `Token ${this.$store.getters.getToken}`}})
-                        .then(resp => resp.data)
-                        .catch(errors => {
-                            console.log("Getting signed url Error: " + errors)
-                        })
-        },
+        }
     },
 
     created (){
+
         axios.get(this.deploy_to + 'ingredient/', {headers: {
             'Authorization': `Token ${this.$store.getters.getToken}`}})
                 .then(resp => {
