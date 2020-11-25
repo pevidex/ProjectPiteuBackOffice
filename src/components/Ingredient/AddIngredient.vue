@@ -86,6 +86,7 @@ export default {
             setTimeout(() => this.success = null, 3000);
         },
         clearForms(){
+            //File input form must be manually cleared to avoid bugs 
             this.currentIngredient = {
                 "name" : '',
                 "img" : '',
@@ -94,7 +95,6 @@ export default {
             },
             this.uploadedUrl = null
             this.uploadedFile = null
-            this.$refs.inputImage.reset()
         },
         ingredientNameNormalization(name){
             return name.toLowerCase().replace(/ /g, '-')
@@ -132,11 +132,9 @@ export default {
         ,
         preview_image(file){
             if(file){
-                console.log("preview_image in if");
                 utils.processImageFile(file,this,true);
                 this.currentIngredient.img = this.uploadedUrl
             } else {
-                console.log("preview_image in else");
                 this.uploadedUrl = null
                 this.uploadedFile = null
             }
