@@ -30,8 +30,6 @@
                         v-if="currentIngredient.img"
                         :src="currentIngredient.img" alt=""
                         contain
-                        @load="onImgLoad()"
-                        @error="imgLoadError()"
                         width="300px">
                     </v-img>
                 </v-col>
@@ -63,10 +61,8 @@ export default {
             deploy_to : process.env.VUE_APP_DATABASE,
             uploadedFile: null,
             uploadedUrl: null,
-            isImageLoaded: false,
             err: null,
             success: null,
-            valid: false,
             currentIngredient: {
                 "name" : '',
                 "img" : '',
@@ -136,25 +132,21 @@ export default {
         ,
         preview_image(file){
             if(file){
+                console.log("preview_image in if");
                 utils.processImageFile(file,this,true);
                 this.currentIngredient.img = this.uploadedUrl
             } else {
+                console.log("preview_image in else");
                 this.uploadedUrl = null
                 this.uploadedFile = null
             }
-        },
-        onImgLoad(){
-            this.isImageLoaded = true
-        },
-        imgLoadError(){
-            this.isImageLoaded = false
         },
         validateIngredient(){
             if(this.currentIngredient.name.length < 2){
                 this.showErr("Name is too short");
                 return false
             }
-            if(!this.isImageLoaded || !this.uploadedUrl){
+            if(!this.uploadedFile){
                 this.showErr("You must upload an image");
                 return false
             }
@@ -166,10 +158,9 @@ export default {
         },
         async submitIngredient(){
             if(this.validateIngredient()) {
-                console.log("Ingredient Validated")
+                console.log("Ingredient {0} Is Valid", this.currentIngredient.name)
 
-                let imageUri = this.getImageFileName();
-                const fileName = this.generateImageName(imageUri);
+                let fileName = this.generateImageName(this.uploadedFile.name);
                 let imageUrl = await uploadImageFileToS3(this.deploy_to, this.$store.getters.getToken, this.uploadedFile, fileName);
 
                 const ingredient = {
@@ -178,13 +169,12 @@ export default {
                     category: this.currentIngredient.category,
                     diets: this.currentIngredient.diets ? this.currentIngredient.diets.map(d => d.id) : []
                 }
+
                 console.log(ingredient)
-                axios.post(this.deploy_to + 'ingredient/', ingredient,{headers: {
+                axios.post(this.deploy_to + 'ingredient/', ingredient, {headers: {
                     'Authorization': `Token ${this.$store.getters.getToken}`}})
                 .then((response) => {
-                    console.log(response.data)
-                    this.showSuccess("status "+response.status)
-                    console.log("clearing forms")
+                    this.showSuccess("Ingredient Created")
                     this.clearForms()
                 })
                 .catch(errors => {
@@ -193,10 +183,11 @@ export default {
                 })
             }
         }, generateImageName(filename){
-            console.log("generating image name from: " + filename)
-            const fileExtension = "." + filename.split('.').pop();
-            const randomInt = "_" + Math.floor(Math.random() * 10000)
-            return this.currentIngredient.category + "_" + this.currentIngredient.name.replace(/[^a-z0-9]/gi, '_').toLowerCase() + randomInt + fileExtension
+            let fileExtension = "." + filename.split('.').pop();
+            let randomInt = "_" + Math.floor(Math.random() * 10000)
+            let name = this.currentIngredient.category + "_" + this.currentIngredient.name.replace(/[^a-z0-9]/gi, '_').toLowerCase() + randomInt + fileExtension
+            console.log("Generated image name from file {0}, name: {1}", filename, name)
+            return name
         }
     },
 
