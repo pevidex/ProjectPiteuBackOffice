@@ -1,5 +1,7 @@
 <template>
     <v-container style="margin: 0px; padding: 0px; max-width: 100%; height:100%" fluid >
+
+            
         <v-row class="ma-0 fill-height">
             <v-col cols="4" class="ma-0 pa-0 flex-grow-0">
 
@@ -7,50 +9,70 @@
                 <v-card class="meta-container fill-height px-5 py-1 flex-grow-0">
                     <v-row class="mx-3" align="center" justify="center">
                         <v-text-field class="shrink" v-model="importId" type="number" label="Import existing recipe" placeholder="Recipe ID"></v-text-field>
-                        <v-btn class="mx-3" depressed small @click="importRecipe">Import</v-btn>
+                        <v-btn class="mx-3" depressed small @click="importInternalRecipe">Import</v-btn>
                     </v-row>
                     <v-card-title style="word-break: normal">Very good Recipe that Ricardo's Mother doesn't know</v-card-title>
+                    
+                    <!-- IMAGE PICKER TO CHOOSE FROM EXTERNAL RECIPE -->
+                    <div v-if="externalRecipe">
+                        <v-row align="center" justify="center">
+                            <v-col cols="2">
+                                <v-btn v-if="externalImgIndex > 0" icon v-on:click="navigateExternalImages(-1)">
+                                    <v-icon large>mdi-menu-left-outline</v-icon>
+                                </v-btn>
+                            </v-col>
+                            <v-col cols="8">
+                                <v-img contain height="200px" :src="url"></v-img>
+                            </v-col>
+                            <v-col cols="2">
+                                <v-btn v-if="externalImgIndex < externalRecipe.allImageUrls.length - 1" icon v-on:click="navigateExternalImages(1)">
+                                    <v-icon large >mdi-menu-right-outline</v-icon>
+                                </v-btn> 
+                            </v-col>
+                        </v-row>
+                    </div>
 
-                    <v-img contain height="150px" v-if="url" :src="url"></v-img>
-                    <v-file-input prepend-icon="mdi-camera" show-size label="Recipe Photo" @change="preview_image" />
-                    <span>OR</span>
-                    <v-text-field label="URL" v-model="url" @change="download_image"></v-text-field>
-     
+                    <!-- INTERNAL RECIPE IMAGE -->
+                    <div v-if="!externalRecipe">
+                        <v-img contain height="150px" v-if="url" :src="url"></v-img>
+                        <v-file-input class="mt-1" max-height="200px" prepend-icon="mdi-camera" show-size label="Recipe Photo" @change="preview_image" />
+                        <span>OR</span>
+                        <v-text-field class="pa-0 ma-0" label="URL" v-model="url" @change="download_image"></v-text-field>
+                    </div>
 
                     <v-form>
                         <v-container class="pa-0">
-                            <v-row>
-                                <v-col cols="12">
-                                    <v-text-field label="Recipe Name" v-model="recipeName">
-
-                                    </v-text-field>
+                            <v-row class="px-2">
+                                <v-col cols="12" class="pa-0 ma-0">
+                                    <v-text-field class="pa-0" label="Recipe Name" v-model="recipeName"></v-text-field>
                                 </v-col>
-                                <v-col cols="6">
-                                    <v-select label="Dish" v-model="dish"
+                                <v-col cols="6" class="pa-0 ma-0">
+                                    <v-select class="pa-0" label="Dish" v-model="dish"
                                         :items="getDishTypes()"
                                         item-text="name"
                                         item-value="id">
                                     </v-select>
                                 </v-col>
-                                <v-col cols="6">
-                                    <v-select label="Difficulty" v-model="difficulty"
+                                <v-col cols="6" class="pa-0 pl-1 ma-0">
+                                    <v-select class="pa-0" label="Difficulty" v-model="difficulty"
                                         :items="difficultyOptions">
                                     </v-select>
                                 </v-col>
-                                <v-col cols="4">
-                                    <v-text-field v-model="prepTime" type="number" label="PrepTime"></v-text-field>
+                                <v-col cols="4" class="pa-0 ma-0">
+                                    <v-text-field class="pa-0" v-model="prepTime" type="number" label="PrepTime"></v-text-field>
                                 </v-col>
-                                <v-col cols="4">
-                                    <v-text-field v-model="totalTime" type="number" label="TotalTime"></v-text-field>
+                                <v-col cols="4" class="pa-0 pl-1 ma-0">
+                                    <v-text-field class="pa-0" v-model="totalTime" type="number" label="TotalTime"></v-text-field>
                                 </v-col>
-                                <v-col cols="4">
-                                    <v-text-field v-model="numberServes" type="number" label="People"  @click:append-outer="incrementServes" @click:prepend="decrementServes"></v-text-field>
+                                <v-col cols="4" class="pa-0 pl-1 ma-0">
+                                    <v-text-field class="pa-0" v-model="numberServes" type="number" label="People"  @click:append-outer="incrementServes" @click:prepend="decrementServes"></v-text-field>
                                 </v-col>
-                                <v-col cols="12">
-                                    <v-textarea rows="2" label="Description" v-model="description">
+                                <v-col cols="12" class="pa-0 ma-0">
+                                    <v-textarea class="pa-0" rows="3" label="Description" v-model="description">
 
                                     </v-textarea>
                                 </v-col>
+                                
                                 <v-col cols="12">
                                     <b-alert variant="danger" v-if="this.err" show>{{this.err}}</b-alert>
                                     <b-alert variant="success" v-if="this.success" show>{{this.success}}</b-alert>
@@ -83,25 +105,28 @@
                                 </v-card>
                             </v-col>
                             </v-row>
+                            
+                            <!-- ADD NEW INGREDIENT -->
                             <v-row>
                                 <v-col cols="12">
                                     <v-card>
                                         <v-card-title>Add Ingredients</v-card-title>
-                                        <v-row class="mx-3" align="center">
-                                            <v-col cols="2">
+                                        <v-row no-gutters class="mx-3 my-0">
+                                            <v-col cols="3">
                                                 <v-select label="Measure" v-model="measure"
                                                                             :items="getMeasures()"
                                                                             item-text="name"
+                                                                            clearable
                                                                             return-object>
                                                 </v-select>
                                             </v-col>
-                                            <v-col cols="1">
-                                                <v-text-field label="Qnt" type="Number" v-model="quantity">
+                                            <v-col cols="2">
+                                                <v-text-field label="Quantity" type="Number"  class="ml-3" v-model="quantity">
 
                                                 </v-text-field>
                                             </v-col>
                                             <v-col cols="6">
-                                                <v-autocomplete
+                                                <v-autocomplete class="ml-3"
                                                     v-model="currentIngredient"
                                                     :items="getIngredients()"
                                                     color="white"
@@ -116,20 +141,102 @@
                                             <v-col cols="1">
                                                 <v-checkbox v-model="optional" label="Opt"></v-checkbox>
                                             </v-col>
+                                        </v-row>
+                                        <v-row no-gutters class="mx-3">
+                                            <v-text-field label="Notes" v-model="ingredientNotes"></v-text-field>
+                                        </v-row>
+                                        <v-row justify="center">
                                             <v-col cols="2">
                                                 <v-btn color="green" @click="addIngredient">Add</v-btn>
                                             </v-col>
                                         </v-row>
-                                        <v-row>
-                                            <v-col cols="12">
-                                                <div class="ml-5 d-flex flex-row" v-for="recipeIngredient in added_ingredients" :key="recipeIngredient.ingredient.id" align="center">
-                                                        <span class="mx-2" >{{recipeIngredient.measure.name}}</span>
-                                                        <span class="mx-2">{{recipeIngredient.quantity}}</span>
-                                                        <span class="mx-2">{{recipeIngredient.ingredient.name}}</span>
-                                                        <span v-text="recipeIngredient.optional ? 'optional' : 'required'"></span>
-                                                        <v-btn class="mx-2" x-small icon color="red" @click="removeRecipeIngredient(recipeIngredient)">
-                                                            <v-icon>mdi-close</v-icon>
-                                                        </v-btn>
+                                        <v-row no-gutters justify="center" v-if="this.addedIngredientErr">
+                                            <b-alert variant="danger" show>{{this.addedIngredientErr}}</b-alert>
+                                        </v-row>
+                                        <v-row justify="center">
+                                            <v-col cols="5">
+                                                <v-divider style="color: red"></v-divider> 
+                                            </v-col>
+                                        </v-row>
+                                        <v-row no-gutters v-show="this.added_ingredients.length > 0" justify="center">
+                                            <p>Added ingredients <span>({{ this.added_ingredients.length }})</span></p>
+                                        </v-row>
+                                        
+                                        <!-- ADDED INGREDIENTS LIST -->
+                                        <v-row no-gutters>
+                                            <v-col cols="12" no-gutters>
+                                                <div v-for="(recipeIngredient, index) in added_ingredients" :key="index">
+                                                        <!-- SHOW INGREDIENT IN EDIT MODE -->
+                                                        <div v-show="recipeIngredient.editMode" :class="{'lightgray pa-2': index % 2 === 0, 'lavendergray pa-2': index % 2 !== 0}" >
+                                                            <v-row v-show="recipeIngredient.originalMeasure !== null" no-gutters>
+                                                                <span>External Measure: <strong>{{ recipeIngredient.originalMeasure }}</strong> </span>
+                                                            </v-row>
+                                                            <v-row v-show="recipeIngredient.originalIngredient !== null" no-gutters styl>
+                                                                <span>External Ingredient: <strong>{{ recipeIngredient.originalIngredient }}</strong> </span>
+                                                                <v-btn @click="addNewIngredient(recipeIngredient.originalIngredient, index)" v-show="!recipeIngredient.editData.ingredient.id" rounded  x-small color="success" style="margin-left: 15px">
+                                                                    Add New Ingredient
+                                                                </v-btn>
+                                                            </v-row>
+                                                            <v-row v-show="recipeIngredient.originalNotes" no-gutters>
+                                                                <span>External Ingredient Notes: <strong>{{ recipeIngredient.originalNotes }}</strong> </span>
+                                                            </v-row>
+                                                            <v-row no-gutters class="mt-1">
+                                                                <v-col cols="2">
+                                                                    <v-select label="Measure" v-model="recipeIngredient.editData.measure"
+                                                                                                :items="getMeasuresWithSuggestionBias(recipeIngredient)"
+                                                                                                item-text="name"
+                                                                                                return-object
+                                                                                                :clearable="true">
+                                                                    </v-select>
+                                                                </v-col>
+                                                                <v-col cols="2">
+                                                                    <v-text-field class="ml-3" label="Qnt" type="Number" v-model="recipeIngredient.editData.quantity">
+
+                                                                    </v-text-field>
+                                                                </v-col>
+                                                                <v-col cols="4">
+                                                                    <v-autocomplete
+                                                                        class="ml-3"
+                                                                        v-model="recipeIngredient.editData.ingredient"
+                                                                        :items="getIngredientWithSuggestionBias(recipeIngredient)"
+                                                                        item-text="name"
+                                                                        label="Ingredients"
+                                                                        placeholder="Type to search"
+                                                                        return-object
+                                                                    ></v-autocomplete>
+                                                                </v-col>
+                                                                <v-col cols="1">
+                                                                    <v-checkbox class="ml-3" v-model="recipeIngredient.editData.optional" label="Opt"></v-checkbox>
+                                                                </v-col>
+                                                                <v-col cols="3">
+                                                                    <v-btn icon color="green" @click="saveAddedIngredientEditing(recipeIngredient)"><v-icon>mdi-check</v-icon></v-btn>
+
+                                                                    <v-btn icon color="black" @click="togleIngredientEditMode(recipeIngredient)"><v-icon>mdi-arrow-left</v-icon></v-btn>
+
+                                                                    <v-btn icon color="red" @click="removeRecipeIngredient(index)"><v-icon>mdi-delete-forever</v-icon></v-btn>
+                                                                </v-col>
+                                                            </v-row>
+                                                            <v-row no-gutters >
+                                                                <v-text-field label="Notes" v-model="recipeIngredient.editData.notes" clearable></v-text-field>
+                                                            </v-row>
+                                                            <v-row no-gutters>
+                                                                <p style="color:red"> {{ recipeIngredient.error }} </p>
+                                                            </v-row>
+                                                        </div>
+                                                        <!-- SHOW INGREDIENT IN SIMPLE MODE -->
+                                                        <div v-show="!recipeIngredient.editMode" class="text-left pa-1">
+                                                            <span class="mx-2" >{{recipeIngredient.measure.name}}</span>
+                                                            <span class="mx-2">{{recipeIngredient.quantity}}</span>
+                                                            <span class="mx-2">{{recipeIngredient.ingredient.name}}</span>
+                                                            <span v-if="recipeIngredient.notes" class="mx-2" style="color: grey">( {{recipeIngredient.notes}} )</span>
+                                                            <span v-text="recipeIngredient.optional ? 'optional' : 'required'"></span>
+                                                            <v-btn class="ml-4" x-small icon color="black" @click="togleIngredientEditMode(recipeIngredient)">
+                                                                <v-icon>mdi-pencil</v-icon>
+                                                            </v-btn>
+                                                            <v-btn class="mx-1" x-small icon color="red" @click="removeRecipeIngredient(index)">
+                                                                <v-icon>mdi-delete-forever</v-icon>
+                                                            </v-btn>
+                                                        </div>
                                                 </div>
                                             </v-col>
                                         </v-row>
@@ -137,6 +244,7 @@
                                 </v-col>
                             </v-row>
 
+                            <!-- INSTRUCTIONS LIST -->
                             <v-row>
                                 <v-col cols="12">
                                     <v-card class="pa-5">
@@ -159,12 +267,15 @@
 import axios from 'axios'
 import Vue from 'vue'
 import { getSignedUrl, uploadImageFileToS3 } from '@/helpers/s3-image-storage'
+import { mapExternalMeasures, mapExternalIngredients } from '@/helpers/mapExternalRecipeData'
+import AddIngredientCore from '../Ingredient/AddIngredientCore.vue'
 
 var utils = require('../../utils');
 
 export default {
     name: "AddRecipe",
     components: {
+        AddIngredientCore
     },
     data(){
         return {
@@ -184,6 +295,7 @@ export default {
             currentIngredient: null,
             measure:null,
             quantity:null,
+            ingredientNotes: '',
             optional: false,
             added_ingredients: [],
             raw_instructions: null,
@@ -192,12 +304,19 @@ export default {
             possible_utensils:[],
             possible_dishes: [],
             err: null,
+            addedIngredientErr: null,
             success: null,
-            importId: null
+            importId: null,
+            externalRecipe: null,
+            externalImgIndex: 0,
+
+            //When add new ingredient popup appears
+            popupShowAddIngredient: false,
+            popupIngredientName: null
         }
     },
-    mounted (){
-        const requestIngredient = axios.get(this.deploy_to + 'ingredient/', {headers: {
+    async mounted (){
+        const requestIngredient = axios.get(this.deploy_to + 'backoffice/ingredients/', {headers: {
                 'Authorization': `${this.$store.getters.getTokenToSend}`
         }} )
         const requestMeasure = axios.get(this.deploy_to + 'measure/', {headers: {
@@ -213,18 +332,11 @@ export default {
                 'Authorization': `${this.$store.getters.getTokenToSend}`
         }})
 
-        const editRecipeId = this.$store.getters.getRecipeToEdit
-        if(editRecipeId != null && editRecipeId > 0){
-            this.importId = editRecipeId
-            this.$store.commit('editRecipe', null)  //RESET VALUE
-            this.importRecipe()
-        }
-
-        axios.all([requestIngredient, requestMeasure, requestCuisines, requestUtensils, requestDishes],{headers: {
+        await axios.all([requestIngredient, requestMeasure, requestCuisines, requestUtensils, requestDishes],{headers: {
                     'Authorization': `Token ${this.$store.getters.getToken}`
                 }})
             .then(axios.spread( (...responses) => {
-                this.possible_ingredients = responses[0].data.results
+                this.possible_ingredients = responses[0].data
                 this.possible_measures = responses[1].data.results
                 this.possible_cuisines = responses[2].data.results
                 this.possible_utensils = responses[3].data.results
@@ -232,15 +344,26 @@ export default {
             })).catch(errors => {
                 console.log("ERROR request tables: " +  errors)
             })
+        
+        this.verifyImportRecipe();
+        this.verifyFetchExternalRecipe();
     },
     methods: {
         showErr(msg){
           this.err = msg
-          setTimeout(() => this.err = null, 3000);
+          setTimeout(() => this.err = null, 5000);
+        },
+        showAddedIngredientErr(msg){
+          this.addedIngredientErr = msg
+          setTimeout(() => this.addedIngredientErr = null, 2000);
+        },
+        showEditIngredientErr(recipeIngredient, msg){
+            recipeIngredient.error = msg;
+            setTimeout(() => recipeIngredient.error = null, 2000);
         },
         showSuccess(msg){
             this.success = msg
-            setTimeout(() => this.success = null, 3000);
+            setTimeout(() => this.success = null, 5000);
         },
         clearForms(){
             this.importId = null
@@ -262,6 +385,11 @@ export default {
             this.resetIngredientsForm()
         },
         async submitRecipe(){
+
+            if(!this.validateRecipe()){
+                return;
+            }
+
             var imageUrl = ""
             if(this.file != null){
                 const fileName = this.generateImageName()
@@ -284,10 +412,6 @@ export default {
                 recipeIngredients: this.parseRecipeIngredients(),
                 instructions: this.parseInstructions(),
                 is_valid : true
-            }
-
-            if(!this.validateRecipe(recipe)){
-                return;
             }
 
             console.log(recipe);
@@ -322,119 +446,54 @@ export default {
                     console.log("Tried to create recipe, error: " + errors)
                 })
         },
-        validateRecipe(recipe){
-            if(recipe.name == null || recipe.name.length < 2){
-                this.showErr("Name is too short");
-                return false
-            }
-            if(recipe.dishType == null){
-                this.showErr("Please fill dish type");
-                return false
-            }
-            if(recipe.description == null || recipe.description.length < 2){
-                this.showErr("Please fill description");
-                return false
-            }
-            if(recipe.difficulty == null || recipe.difficulty < 0){
-                this.showErr("Please fill difficulty");
-                return false
-            }
-            if(recipe.serves == null || recipe.serves < 1){
-                this.showErr("Please fill people served number");
-                return false
-            }
-            if(recipe.prepareInMinutes == null || recipe.readyInMinutes == null || recipe.readyInMinutes < 1 || recipe.prepareInMinutes < 1){
-                this.showErr("Please fill recipe time correctly");
-                return false
-            }
-            if(recipe.recipeIngredients.length < 1){
-                this.showErr("Please add ingredients");
-                return false
-            }
-            if(recipe.instructions.length < 1){
-                this.showErr("Please add instructions");
-                return false
-            }
-            return true
-        },
         generateImageName(){
             const fileExtension = "." + this.file.name.split('.').pop();
             const randomInt = "_" + Math.floor(Math.random() * 10000)
             return this.recipeName.replace(/[^a-z0-9]/gi, '_').toLowerCase() + randomInt + fileExtension
         },
-        parseRecipeIngredients(){
-            var recipeIngredients = []
-            this.added_ingredients.forEach(function(item){
-                var recipeIngredient = {
-                    measure: item.measure.id,
-                    quantity: item.quantity,
-                    optional: item.optional,
-                    ingredient: item.ingredient.id
+        verifyIngredientUniqueInRecipe(ingredientId){
+            for(var i = 0; i < this.added_ingredients.length; i++){
+                if(this.added_ingredients[i].ingredient.id === ingredientId){
+                    return false;
                 }
-                recipeIngredients.push(recipeIngredient)
-            })
-            return recipeIngredients
-        },
-        parseInstructions(){
-            if(this.raw_instructions == null)
-                return []
-            var rawInstructions = this.raw_instructions.split("\n");
-            var parsedInstructions = []
-            var steps = 1
-            rawInstructions.forEach(function(item){
-                var newInstruction = {
-                    step: steps,
-                    instruction_description: item
-                }
-                if(newInstruction.instruction_description != ""){
-                    parsedInstructions.push(newInstruction);
-                    steps++;
-                }
-            })
-            return parsedInstructions;
+            }
+            return true;
         },
         addIngredient(){
+
+            if(!this.validateIngredientFields(this.measure, this.quantity, this.currentIngredient)){
+                this.showAddedIngredientErr("Ingredient fields are incorrect")
+                return;
+            }
+
+            if(!this.verifyIngredientUniqueInRecipe(this.currentIngredient.id)){
+                this.showAddedIngredientErr("Ingredient already exists, edit instead")
+                return
+            }
+
             var recipeIngredient = {
                 measure: this.measure,
                 quantity: this.quantity,
                 optional: this.optional,
                 ingredient: {id: this.currentIngredient.id, name: this.currentIngredient.name},
+                notes: this.ingredientNotes ? this.ingredientNotes : "",
+                editMode: false,
+                editData : { measure: this.measure, quantity: this.quantity, optional: this.optional, ingredient: {id: this.currentIngredient.id, name: this.currentIngredient.name}, notes: this.ingredientNotes},
+                error : null
             }
-            if(this.validateRecipeIngredient(recipeIngredient)){
-                this.resetIngredientsForm();
-                this.addOrReplaceInIngredientList(recipeIngredient)
-            }
-        },
-        addOrReplaceInIngredientList(recipeIngredient){
-            for(var i = 0; i < this.added_ingredients.length; i++){
-                if(this.added_ingredients[i].ingredient.id === recipeIngredient.ingredient.id){
-                    console.log("replaced in list");
-                    this.added_ingredients[i] = recipeIngredient;
-                    return;
-                }
-            }
+
             this.added_ingredients.push(recipeIngredient)
+            this.resetIngredientsForm();
         },
-        validateRecipeIngredient(recipeIngredient){
-            if(recipeIngredient.measure != null && recipeIngredient.quantity > 0 && recipeIngredient.optional != null && recipeIngredient.ingredient != null){
-                return true
-            }
-            return false
-        },
-        removeRecipeIngredient(recipeIngredient){
-            for(var i = 0; i < this.added_ingredients.length; i++){
-                if (this.added_ingredients[i].ingredient === recipeIngredient.ingredient) { 
-                    this.added_ingredients.splice(i, 1); 
-                    return;
-                }
-            }
+        removeRecipeIngredient(index){
+            this.added_ingredients.splice(index, 1)
         },
         resetIngredientsForm(){
             this.currentIngredient = null;
             this.optional = false;
+            this.ingredientNotes = "";
         },
         setLocalUrl(url){
-            console.log("set url")
             this.url = url;
         }
         ,
@@ -454,6 +513,30 @@ export default {
             } else {
                 this.url = null;
                 this.file = null;
+            }
+        },
+        togleIngredientEditMode(recipeIngredient){
+            recipeIngredient.editMode = !recipeIngredient.editMode;
+            //Reset edit data
+            recipeIngredient.editData = { measure: recipeIngredient.measure, quantity: recipeIngredient.quantity, optional: recipeIngredient.optional, ingredient: {id: recipeIngredient.ingredient.id, name: recipeIngredient.ingredient.name}, notes: recipeIngredient.notes}
+        },
+        saveAddedIngredientEditing(recipeIngredient){
+            if(recipeIngredient.editMode){
+                
+                if(!this.validateIngredientFields(recipeIngredient.editData.measure, recipeIngredient.editData.quantity, recipeIngredient.editData.ingredient)){
+                    this.showEditIngredientErr(recipeIngredient, "Ingredient is too incomplete")
+                    return;
+                }
+
+                let newMeasure = recipeIngredient.editData.measure;
+                let newIngredient = recipeIngredient.editData.ingredient;
+                
+                recipeIngredient.quantity = recipeIngredient.editData.quantity
+                recipeIngredient.optional = recipeIngredient.editData.optional
+                recipeIngredient.measure = newMeasure !== null ? newMeasure : this.getDefaultEmptyObject()
+                recipeIngredient.ingredient = newIngredient !== null ? newIngredient : this.getDefaultEmptyObject()
+                recipeIngredient.notes = recipeIngredient.editData.notes
+                this.togleIngredientEditMode(recipeIngredient)
             }
         },
         getCuisines() {
@@ -508,16 +591,124 @@ export default {
             });
             return this.possible_ingredients;
         },
+        //Return measure options with suggestions appearing first
+        getMeasuresWithSuggestionBias(recipeIngredient){
+
+            if(!recipeIngredient || !recipeIngredient.measureOptions || !Array.isArray(recipeIngredient.measureOptions) || recipeIngredient.measureOptions.length == 0)
+                return this.possible_measures;
+
+            let measuresSuggested = recipeIngredient.measureOptions;
+            
+            let otherMeasures = this.possible_measures.filter(m => {
+                if(measuresSuggested.filter(m2 => m2.id === m.id).length > 0){
+                    return false
+                }
+                return true
+            });
+            return measuresSuggested.concat(otherMeasures);
+        },
+        //Return ingredient options with suggestions appearing first
+        getIngredientWithSuggestionBias(recipeIngredient){
+
+            if(!recipeIngredient || !recipeIngredient.ingredientOptions || !Array.isArray(recipeIngredient.ingredientOptions) || recipeIngredient.ingredientOptions.length == 0)
+                return this.possible_ingredients;
+
+            let ingredientsSuggested = recipeIngredient.ingredientOptions;
+
+            let otherIngredients = this.possible_ingredients.filter(i => {
+                if(ingredientsSuggested.filter(i2 => i.id === i2.id).length > 0){
+                    return false
+                }
+                return true
+            });
+            
+            return ingredientsSuggested.concat(otherIngredients);
+        },
+        getDefaultEmptyObject(){
+            return { id : null, name: "" }
+        },
         getDifficultyValue(){
             return this.difficultyOptions.indexOf(this.difficulty) + 1;
         },
-        async importRecipe(){
+        verifyFetchExternalRecipe(){
+            const externalRecipe = this.$store.getters.getExternalRecipe
+            if(externalRecipe != null){
+                this.externalRecipe = externalRecipe
+                this.$store.commit('newExternalRecipe', null)  //RESET VALUE
+                this.importExternalRecipe()
+            }
+        },
+        verifyImportRecipe(){
+            const editRecipeId = this.$store.getters.getRecipeToEdit
+            if(editRecipeId != null && editRecipeId > 0){
+                this.importId = editRecipeId
+                this.$store.commit('editRecipe', null)  //RESET VALUE
+                this.importInternalRecipe()
+            }
+        },
+        importExternalRecipe(){
+            const recipe = this.externalRecipe
+            if(recipe != null){
+                this.recipeName = recipe.recipeName
+                this.prepTime = recipe.prepTime
+                this.totalTime = recipe.totalTime
+                this.numberServes = recipe.servings
+                this.description = recipe.description
+
+                //Set url for recipe image and other options for navigation
+                if(recipe.mainImageUrl !== ""){
+                    this.url = recipe.mainImageUrl;
+                    this.externalImgIndex = recipe.allImageUrls.indexOf(recipe.mainImageUrl)
+                } else if (recipe.allImageUrls) {
+                    this.url = recipe.allImageUrls[0]
+                }
+                this.images = recipe.allImageUrls
+
+                //Insert instructions
+                this.raw_instructions = ""
+                for(var i = 1; i <= Object.keys(recipe.instructions).length; i++){
+                    this.raw_instructions += recipe.instructions[i] + '\n';
+                }
+                
+                this.importExternalIngredients(recipe.ingredients)
+                
+            }
+        },
+        async importExternalIngredients(externalIngredients){
+            //TODO ADD other ingredient groups
+            //RECIPE.INGREDIENTS IN FORMAT: {'group': ingredientList}
+
+            var allExternalMeasures = []
+            var allExternalIngredients = []
+
+            //Create lists with all measures and ingredients for mapping request
+            for(const [key, value] of Object.entries(externalIngredients)){
+                value.forEach(function(ingredientObject) {
+                    allExternalMeasures.push(ingredientObject.measure);
+                    allExternalIngredients.push(ingredientObject.name);
+                })
+            }
+
+            //Fetch mappings from server
+            const measureMapping = await mapExternalMeasures(allExternalMeasures, this.deploy_to, `Token ${this.$store.getters.getToken}`)
+            const ingredientMapping = await mapExternalIngredients(allExternalIngredients, this.deploy_to, `Token ${this.$store.getters.getToken}`)
+            console.log(ingredientMapping)
+            for(const [key, value] of Object.entries(externalIngredients)){
+                value.forEach(function(ingredientObject) {
+                    let measureOptions = measureMapping[ingredientObject.measure]
+                    let ingredientOptions = ingredientMapping[ingredientObject.name]
+                    this.buildAddedIngredientFromExternalSource(measureOptions, ingredientObject.quantity, ingredientOptions, ingredientObject.measure, ingredientObject.name, ingredientObject.notes);
+                }, this)
+            }
+
+        },
+        async importInternalRecipe(){
             const recipe = await axios.get(this.deploy_to + `recipe/${this.importId}`, {headers: {'Authorization': `Token ${this.$store.getters.getToken}`}})
                                 .then(resp => resp.data)
                                 .catch(errors => {
                                     console.log("Error importing recipe: " + errors)
                                 })
-            console.log(recipe)
+
             if(recipe != undefined){
                 this.recipeName = recipe.name
                 this.dish = recipe.dishType != null ? recipe.dishType.id : null
@@ -540,26 +731,244 @@ export default {
                     measure: {id: i.measure, name: i.measureName},
                     quantity: i.quantity,
                     optional: i.optional,
-                    ingredient: {id : i.ingredient, name: i.ingredientName}
+                    ingredient: {id : i.id, name: i.ingredientName},
+                    editData : { measure: null, quantity: undefined, optional: false, ingredient: {id: null, name: ""}, notes : ""},
+                    editMode: false,
                 }
                 addedIngredients.push(recipeIngredient)
             })
             return addedIngredients
+        },
+        //Used to create Recipe Ingredient from external scraped ingredient
+        //Can have multiple measure/ingredient options for manual selection
+        buildAddedIngredientFromExternalSource(measureOptions, quantity, ingredientOptions, originalMeasure, originalIngredient, originalNotes){
+            let recipeIngredient = {
+                measure: {id: null, name: ""},
+                quantity: quantity,
+                optional: false,
+                ingredient: {id : null, name: ""},
+                notes: originalNotes,
+                editData : { measure: null, quantity: quantity, optional: false, ingredient: {id: null, name: ""}, notes : ""},
+                editMode: true,
+                error : null,
+                originalNotes: originalNotes,
+                originalMeasure : originalMeasure, 
+                originalIngredient : originalIngredient
+            }
+
+            if(Array.isArray(measureOptions) && measureOptions.length){
+                recipeIngredient["measureOptions"] = measureOptions
+                let bestMeasure = measureOptions[0]
+                if(bestMeasure.similarity > 0.8)
+                    recipeIngredient.editData.measure = bestMeasure
+            }
+
+            if(Array.isArray(ingredientOptions) && ingredientOptions.length){
+                recipeIngredient["ingredientOptions"] = ingredientOptions
+                let bestIngredient = ingredientOptions[0]
+                if(bestIngredient.similarity > 0.8)
+                    recipeIngredient.editData.ingredient = {id: bestIngredient.id, name: bestIngredient.name}
+            }
+
+            this.added_ingredients.push(recipeIngredient);
         },
         submitButtonText(){
             if(this.importId == null || this.importId <= 0){
                 return "Submit"
             }
             return "Update Recipe=" + this.importId
-        }
+        },
+        parseRecipeIngredients(){
+            var recipeIngredients = []
+            this.added_ingredients.forEach(function(item){
+                var recipeIngredient = {
+                    measure: item.measure.id,
+                    quantity: item.quantity,
+                    optional: item.optional,
+                    ingredient: item.ingredient.id
+                }
+                recipeIngredients.push(recipeIngredient)
+            })
+            return recipeIngredients
+        },
+        parseInstructions(){
+            if(this.raw_instructions == null)
+                return []
+            var rawInstructions = this.raw_instructions.split("\n");
+            var parsedInstructions = []
+            var steps = 1
+            rawInstructions.forEach(function(item){
+                var newInstruction = {
+                    step: steps,
+                    instruction_description: item
+                }
+                if(newInstruction.instruction_description != ""){
+                    parsedInstructions.push(newInstruction);
+                    steps++;
+                }
+            })
+            return parsedInstructions;
+        },
+        navigateExternalImages(moveIndex){
+            const newIndex = this.externalImgIndex + moveIndex
+            if(newIndex > 0 && newIndex < this.externalRecipe.allImageUrls.length - 1){
+                this.externalImgIndex += moveIndex;
+                this.url = this.externalRecipe.allImageUrls[this.externalImgIndex]
+            }
+        },
+        addNewIngredient(ingredientName, index){
+            this.$modal.show(
+                AddIngredientCore,
+                {initialName: ingredientName, parentRequestId: index},
+                { width: "500", height: "auto", adaptive: true, scrollable: true},
+                { 'before-close': this.ingredientAdded }
+            );
+            this.popupShowAddIngredient = true;
+            this.popupIngredientName = ingredientName; 
+        },
+        ingredientAdded(event){
+            let createdIngredient = event.params.paramList[0]
+            let requestId = event.params.paramList[1]      //Ingredient Index In Recipe
+            console.log("Returned from ingredient added successfully - " + createdIngredient.name + ", reqId:" + requestId)
+
+            //Update ingredient list with new ingredient
+            this.possible_ingredients.push(createdIngredient)
+
+            //Update added ingredient edit data
+            let addedIngredient = this.added_ingredients[requestId]
+            addedIngredient.editData.ingredient = createdIngredient
+            this.$set(this.added_ingredients, requestId, addedIngredient)
+            
+        },
+        validateRecipe(){
+            if(this.recipeName == null || this.recipeName.length < 2){
+                this.showErr("Name is too short");
+                return false
+            }
+            if(this.dish == null){
+                this.showErr("Please fill dish type");
+                return false
+            }
+            if(this.description == null || this.description.length < 2){
+                this.showErr("Please fill description");
+                return false
+            }
+            if(this.difficulty == null || this.difficulty < 0){
+                this.showErr("Please fill difficulty");
+                return false
+            }
+            if(this.numberServes == null || this.numberServes < 1){
+                this.showErr("Please fill people served number");
+                return false
+            }
+            if(this.prepTime == null || this.totalTime == null || this.totalTime < 1 || this.prepTime < 1){
+                this.showErr("Please fill recipe time correctly");
+                return false
+            }
+            if(this.added_ingredients.length < 1){
+                this.showErr("Please add ingredients");
+                return false
+            }
+            //Can't have any ingredient in edit mode
+            for(let ri in this.added_ingredients){
+                if(ri.editMode){
+                    this.showErr("Ingredient " + ri.ingredient.name + " is in edit mode. Please Validate.");
+                    return false
+                }
+            }
+            if(!this.raw_instructions){
+                this.showErr("Please add instructions");
+                return false
+            }
+            return true
+        },
+        validateIngredientFields(measure, quantity, ingredient){
+            //Must have an ingredient and either measure or quantity
+            if(ingredient === null || ingredient.id === null)
+                return false
+            if((!measure || measure.id == null) && (!quantity || quantity === ""))
+                return false
+            if(parseInt(quantity) < 0)
+                return false
+            return true
+        },
     }
 }
 </script>
 
 <style scoped>
 
-#full-container {
-    width: 100%;
-}
+    .lightgray {
+        background-color: #D1D5DE;
+    }
+
+    .lavendergray {
+        background-color:	#B7B6C2;
+    }
+
+    #full-container {
+        width: 100%;
+    }
+
+    .modal {
+        overflow-x: hidden;
+        overflow-y: auto;
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 9;
+    }
+    
+    .backdrop {
+            background-color: rgba(0, 0, 0, 0.3);
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+    .modal-dialog {
+            background-color: #ffffff;
+            position: relative;
+            width: 600px;
+            margin: 50px auto;
+            display: flex;
+            flex-direction: column;
+            border-radius: 5px;
+            z-index: 2;
+            @media screen and (max-width: 992px) {
+            width: 90%;
+            }
+        }
+    .modal-close {
+        width: 30px;
+        height: 30px;
+    }
+    .modal-header {
+        padding: 20px 20px 10px;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+    }
+    .modal-body {
+        padding: 10px 20px 10px;
+        overflow: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .fade-enter-active,
+    .fade-leave-active {
+        transition: opacity 0.2s;
+    }
+    .fade-enter,
+    .fade-leave-to {
+        opacity: 0;
+    }
 
 </style>

@@ -28,8 +28,11 @@ export function processImageFile(file, self, setUrl = false){
 }
 
 export function downloadImageFile(url, self){
+    
+    //let proxy = "https://yacdn.org/proxy/"
+    let proxy = "https://api.allorigins.win/raw?url="
     var image = new Image();
-    image.src = url;
+    image.src = proxy + url;
     image.crossOrigin = "*";
 
     self.setLocalUrl(url)

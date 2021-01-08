@@ -106,7 +106,7 @@
 
       <template v-slot:cell(actions)="row">
 
-        <b-button variant="warning" size="sm" @click="info(row.item)" class="mr-1">
+        <b-button variant="warning" size="sm" @click="editIngredient(row.item)" class="mr-1">
           Edit
         </b-button>
         <b-button variant="outline-primary" size="sm" @click="row.toggleDetails">
@@ -131,7 +131,10 @@
         </b-card>
       </template>
     </b-table>
-    <!-- EDIT INGREDIENT -->
+
+
+
+    <!-- EDIT INGREDIENT 
     <b-modal 
       v-model="show"
       ok-title="Update Ingredient"
@@ -179,6 +182,7 @@
         </b-row>
       </div>
     </b-modal>
+    -->
   </b-container>
 </div>
 </template>
@@ -187,6 +191,8 @@
 import axios from 'axios'
 import Vue from 'vue'
 import { getSignedUrl, uploadImageFileToS3, uploadImageUrlToS3 } from '@/helpers/s3-image-storage'
+import AddIngredientCore from '../Ingredient/AddIngredientCore.vue'
+
 
 export default {
   data() {
@@ -220,6 +226,9 @@ export default {
       filter: null,
       filterOn: []
     }
+  },
+  components: {
+    AddIngredientCore
   },
   computed: {
     sortOptions() {
@@ -264,11 +273,20 @@ export default {
           })
   },
   methods: {
-      info(item) {
-        this.editedIngredient = item
-        this.selectedCategory = {"value":this.editedIngredient.category,"text":this.editedIngredient.category.name}
-        this.selectedDiets = this.editedIngredient.diets
-        this.show=true
+      editIngredient(ingredient) {
+        console.log(ingredient)
+        this.$modal.show(
+            AddIngredientCore,
+            {initialName: ingredient.name, initialUrl: ingredient.img, initialCategory: ingredient.category, initialDiets: ingredient.diets, initialEditIngredientId: ingredient.id},
+            { width: "500", height: "auto", adaptive: true, scrollable: true},
+            { 'before-close': this.ingredientAdded }
+
+        );
+      },
+      ingredientAdded(event){
+        let ingredient = event.params.paramList[0]
+        let requestId = event.params.paramList[1]
+        console.log("Returned from ingredient added successfully - " + ingredient.name)
       },
       showErr(msg){
           this.err = msg

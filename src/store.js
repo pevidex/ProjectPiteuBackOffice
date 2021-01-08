@@ -10,7 +10,8 @@ export default new Vuex.Store({
     token: localStorage.getItem('token') || '',
     userId : localStorage.getItem('userId') || "",
     userEmail : localStorage.getItem('userEmail') || "",
-    editRecipeId : null
+    editRecipeId : null,
+    externalRecipe : null
   },
   mutations: {
     auth_request(state){
@@ -33,6 +34,9 @@ export default new Vuex.Store({
     },
     editRecipe(state, recipeId){
       state.editRecipeId = recipeId
+    },
+    newExternalRecipe(state, recipe){
+      state.externalRecipe = recipe
     }
   },
   actions: {
@@ -50,6 +54,7 @@ export default new Vuex.Store({
           user["username"]=user["email"]
           axios({url: process.env.VUE_APP_DATABASE+'login/', data: user, method: 'POST' })
           .then(resp => {
+            console.log(resp.data)
             const token = resp.data.token
             const userEmail = resp.data.userEmail
             const userId = resp.data.userId
@@ -61,6 +66,8 @@ export default new Vuex.Store({
             localStorage.setItem('token', token)
             localStorage.setItem('userEmail', userEmail)
             localStorage.setItem('userId', userId)
+            console.log(localStorage.getItem('token'))
+            console.log(token)
             axios.defaults.headers.common['Authorization'] = token
             commit('auth_success', token, userId, userEmail)
             resolve(resp)
@@ -81,6 +88,7 @@ export default new Vuex.Store({
     getToken: state => state.token,
     getUserEmail: state => state.userEmail,
     getUserId: state => state.userId,
-    getTokenToSend: state => {return "Token "+state.token}
+    getTokenToSend: state => {return "Token "+state.token},
+    getExternalRecipe: state => state.externalRecipe
   }
 })
