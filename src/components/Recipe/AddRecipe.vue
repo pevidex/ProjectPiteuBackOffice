@@ -180,6 +180,9 @@
                                                             <v-row v-show="recipeIngredient.originalNotes" no-gutters>
                                                                 <span>External Ingredient Notes: <strong>{{ recipeIngredient.originalNotes }}</strong> </span>
                                                             </v-row>
+                                                            <v-row v-show="ingredientHasGroup(recipeIngredient.group)" no-gutters>
+                                                                <span>Ingredient Group: <font color="sienna"><strong>{{ recipeIngredient.group }}</strong></font> </span>
+                                                            </v-row>
                                                             <v-row no-gutters class="mt-1">
                                                                 <v-col cols="2">
                                                                     <v-select label="Measure" v-model="recipeIngredient.editData.measure"
@@ -675,7 +678,6 @@ export default {
             }
         },
         async importExternalIngredients(externalIngredients){
-            //TODO ADD other ingredient groups
             //RECIPE.INGREDIENTS IN FORMAT: {'group': ingredientList}
 
             var allExternalMeasures = []
@@ -697,7 +699,8 @@ export default {
                 value.forEach(function(ingredientObject) {
                     let measureOptions = measureMapping[ingredientObject.measure]
                     let ingredientOptions = ingredientMapping[ingredientObject.name]
-                    this.buildAddedIngredientFromExternalSource(measureOptions, ingredientObject.quantity, ingredientOptions, ingredientObject.measure, ingredientObject.name, ingredientObject.notes);
+                    let ingredientGroup = key
+                    this.buildAddedIngredientFromExternalSource(measureOptions, ingredientObject.quantity, ingredientOptions, ingredientObject.measure, ingredientObject.name, ingredientObject.notes, ingredientGroup);
                 }, this)
             }
 
@@ -741,7 +744,8 @@ export default {
         },
         //Used to create Recipe Ingredient from external scraped ingredient
         //Can have multiple measure/ingredient options for manual selection
-        buildAddedIngredientFromExternalSource(measureOptions, quantity, ingredientOptions, originalMeasure, originalIngredient, originalNotes){
+        //*ingredientGroup is used in some sources that divide ingredients by groups (e.g., 'sauce', 'serve with')
+        buildAddedIngredientFromExternalSource(measureOptions, quantity, ingredientOptions, originalMeasure, originalIngredient, originalNotes, ingredientGroup){
             let recipeIngredient = {
                 measure: {id: null, name: ""},
                 quantity: quantity,
@@ -751,6 +755,7 @@ export default {
                 editData : { measure: null, quantity: quantity, optional: false, ingredient: {id: null, name: ""}, notes : ""},
                 editMode: true,
                 error : null,
+                group: ingredientGroup,
                 originalNotes: originalNotes,
                 originalMeasure : originalMeasure, 
                 originalIngredient : originalIngredient
@@ -892,6 +897,11 @@ export default {
                 return false
             return true
         },
+        //*ingredientGroup is used in some sources that divide ingredients by groups (e.g., 'sauce', 'serve with')
+        //the default group is 'ingredients'
+        ingredientHasGroup(group){
+            return !group || group !== 'ingredients'
+        }
     }
 }
 </script>
