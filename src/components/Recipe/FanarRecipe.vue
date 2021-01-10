@@ -51,7 +51,7 @@ export default {
 			console.log("fetching")
 			
 			if(!this.recipeUrl)
-				this.recipeUrl = "https://www.kitchensanctuary.com/beef-massaman-curry/"
+				this.recipeUrl = "https://howtofeedaloon.com/amazing-mahi-mahi-tacos/"
 			
 
 			this.isLoading = true;

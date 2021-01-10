@@ -669,8 +669,16 @@ export default {
 
                 //Insert instructions
                 this.raw_instructions = ""
-                for(var i = 1; i <= Object.keys(recipe.instructions).length; i++){
-                    this.raw_instructions += recipe.instructions[i] + '\n';
+                var step = 1;
+                for(var gIndex = 1; gIndex <= Object.keys(recipe.instructions).length; gIndex++){
+                    let instructionGroup = recipe.instructions[gIndex]
+                    let groupedInstructions = instructionGroup.instructions
+                    if(instructionGroup.group !== "instructions") //Default Group
+                        this.raw_instructions += '\n#' + instructionGroup.group + '\n'
+                    while(groupedInstructions[step]){
+                        this.raw_instructions += groupedInstructions[step] + '\n'
+                        step++;
+                    }
                 }
                 
                 this.importExternalIngredients(recipe.ingredients)
@@ -706,6 +714,7 @@ export default {
 
         },
         async importInternalRecipe(){
+
             const recipe = await axios.get(this.deploy_to + `recipe/${this.importId}`, {headers: {'Authorization': `Token ${this.$store.getters.getToken}`}})
                                 .then(resp => resp.data)
                                 .catch(errors => {
@@ -797,21 +806,58 @@ export default {
             return recipeIngredients
         },
         parseInstructions(){
+            //Instruction parsing is quite complex due to optional groups, new lines, etc
+            //Might be simplified with regex if someone has time to figure it out
+
+            //Groups start with #GROUP_NAME\n 
+
             if(this.raw_instructions == null)
                 return []
-            var rawInstructions = this.raw_instructions.split("\n");
-            var parsedInstructions = []
-            var steps = 1
-            rawInstructions.forEach(function(item){
-                var newInstruction = {
-                    step: steps,
-                    instruction_description: item
+
+
+            let allInstructions = this.raw_instructions.trimStart();
+            let steps = 1;
+            let parsedInstructions = []
+            let nextGroupIndex = 0
+
+            while(allInstructions.length > 0){
+
+                if(allInstructions.startsWith("#")){ //Ignore first occurence, find 2nd index
+                    nextGroupIndex = allInstructions.substring(1).indexOf('#') 
+                } else {
+                    nextGroupIndex = allInstructions.indexOf('#')
                 }
-                if(newInstruction.instruction_description != ""){
-                    parsedInstructions.push(newInstruction);
-                    steps++;
+                nextGroupIndex = nextGroupIndex > 0 ? nextGroupIndex : Number.MAX_VALUE //When no more groups exist, got to the end
+                let groupName = ""
+                let group = allInstructions.substring(0, nextGroupIndex)
+                console.log(group)
+                if(group.startsWith("#")){
+                    //Group name is between # and \n
+                    let endOfGroupName = group.indexOf("\n")
+                    endOfGroupName = endOfGroupName > 0 ? endOfGroupName : Number.MAX_VALUE
+                    groupName = group.substring(1, endOfGroupName)
+                    group = group.substring(endOfGroupName) //extract group name from group
                 }
-            })
+
+                //Get all group instructions until another group (#) or EOF
+                let groupedInstructions = group
+                console.log(groupedInstructions)
+                groupedInstructions.split("\n").forEach(instruction => {
+                    var newInstruction = {
+                        step: steps,
+                        instruction_description: instruction,
+                        group: groupName
+                    }
+                    if(newInstruction.instruction_description != ""){
+                        parsedInstructions.push(newInstruction);
+                        steps++;
+                    }
+                });
+                allInstructions = allInstructions.substring(nextGroupIndex)
+            }
+
+            console.log(parsedInstructions)
+
             return parsedInstructions;
         },
         navigateExternalImages(moveIndex){
