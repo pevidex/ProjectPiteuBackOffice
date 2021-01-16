@@ -54,13 +54,12 @@ export default new Vuex.Store({
           user["username"]=user["email"]
           axios({url: process.env.VUE_APP_DATABASE+'login/', data: user, method: 'POST' })
           .then(resp => {
-            console.log(resp.data)
-            const token = resp.data.token
+            console.log(resp)
+            let token = resp.data["token"]
             const userEmail = resp.data.userEmail
             const userId = resp.data.userId
-            if(resp.data.isUserAdmin==false){
+            if(resp.data.isUserAdmin == false || !token){
               reject('Unauthorized')
-              console.log("test")
               return
             }
             localStorage.setItem('token', token)

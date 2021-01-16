@@ -142,9 +142,26 @@
                                                 <v-checkbox v-model="optional" label="Opt"></v-checkbox>
                                             </v-col>
                                         </v-row>
-                                        <v-row no-gutters class="mx-3">
-                                            <v-text-field label="Notes" v-model="ingredientNotes"></v-text-field>
+                                        <v-row no-gutters>
+                                            <v-col cols="12">
+                                                <v-btn icon color="grey" @click="toggleAddIngredientAdvOptions"><v-icon>mdi-arrow-expand-down</v-icon></v-btn>
+                                            </v-col>
                                         </v-row>
+                                        <v-row no-gutters class="mx-3 pa-0" v-if="expandAddIngredientOptions">
+                                            <v-col cols="12">
+                                                <v-text-field label="Notes" v-model="ingredientNotes"></v-text-field>
+                                            </v-col>
+                                            <v-col cols="6">
+                                                <v-select @change="changeIngredientGroup" clearable label="Select group" :items="recipeGroups">
+                                                    
+                                                </v-select>
+                                            </v-col>
+                                            <v-col cols="6">
+                                                <v-text-field class="mx-3" label="New Group" v-model="newRecipeGroup"></v-text-field>
+                                                <v-btn @click="addNewGroup">New Group</v-btn>
+                                            </v-col>
+                                        </v-row>
+                                            
                                         <v-row justify="center">
                                             <v-col cols="2">
                                                 <v-btn color="green" @click="addIngredient">Add</v-btn>
@@ -219,8 +236,27 @@
                                                                     <v-btn icon color="red" @click="removeRecipeIngredient(index)"><v-icon>mdi-delete-forever</v-icon></v-btn>
                                                                 </v-col>
                                                             </v-row>
+                                                            
+                                                            <v-row no-gutters>
+                                                                <v-btn icon color="grey" @click="toggleEditIngredientAdvOptions(recipeIngredient)"><v-icon>mdi-arrow-expand-down</v-icon></v-btn>
+                                                            </v-row>
+                                                            
+                                                            <v-row no-gutters v-show="recipeIngredient.editData.advOptions">
+                                                                <v-col cols="12">
+                                                                    <v-text-field label="Notes" v-model="recipeIngredient.editData.notes" clearable></v-text-field>
+                                                                </v-col>
+                                                                <v-col cols="6" >
+                                                                <v-select v-model="recipeIngredient.editData.group" clearable label="Select group" :items="recipeGroups">
+                                                    
+                                                                </v-select>
+                                                                </v-col>
+                                                                <v-col cols="6">
+                                                                    <v-text-field class="mx-3" label="New Group" v-model="newRecipeGroup"></v-text-field>
+                                                                    <v-btn @click="addNewGroup">New Group</v-btn>
+                                                                </v-col>
+                                                            </v-row>
                                                             <v-row no-gutters >
-                                                                <v-text-field label="Notes" v-model="recipeIngredient.editData.notes" clearable></v-text-field>
+
                                                             </v-row>
                                                             <v-row no-gutters>
                                                                 <p style="color:red"> {{ recipeIngredient.error }} </p>
@@ -228,6 +264,7 @@
                                                         </div>
                                                         <!-- SHOW INGREDIENT IN SIMPLE MODE -->
                                                         <div v-show="!recipeIngredient.editMode" class="text-left pa-1">
+                                                            <span v-if="recipeIngredient.group">Group: <strong>{{ recipeIngredient.group }}</strong></span>
                                                             <span class="mx-2" >{{recipeIngredient.measure.name}}</span>
                                                             <span class="mx-2">{{recipeIngredient.quantity}}</span>
                                                             <span class="mx-2">{{recipeIngredient.ingredient.name}}</span>
@@ -312,6 +349,10 @@ export default {
             importId: null,
             externalRecipe: null,
             externalImgIndex: 0,
+            expandAddIngredientOptions: false,
+            ingredientGroup: "",
+            recipeGroups: [],
+            newRecipeGroup: "",
 
             //When add new ingredient popup appears
             popupShowAddIngredient: false,
@@ -480,8 +521,9 @@ export default {
                 optional: this.optional,
                 ingredient: {id: this.currentIngredient.id, name: this.currentIngredient.name},
                 notes: this.ingredientNotes ? this.ingredientNotes : "",
+                group: this.ingredientGroup ? this.ingredientGroup : "",
                 editMode: false,
-                editData : { measure: this.measure, quantity: this.quantity, optional: this.optional, ingredient: {id: this.currentIngredient.id, name: this.currentIngredient.name}, notes: this.ingredientNotes},
+                editData : { measure: this.measure, quantity: this.quantity, optional: this.optional, ingredient: {id: this.currentIngredient.id, name: this.currentIngredient.name}, notes: this.ingredientNotes, group: this.ingredientGroup},
                 error : null
             }
 
@@ -521,7 +563,7 @@ export default {
         togleIngredientEditMode(recipeIngredient){
             recipeIngredient.editMode = !recipeIngredient.editMode;
             //Reset edit data
-            recipeIngredient.editData = { measure: recipeIngredient.measure, quantity: recipeIngredient.quantity, optional: recipeIngredient.optional, ingredient: {id: recipeIngredient.ingredient.id, name: recipeIngredient.ingredient.name}, notes: recipeIngredient.notes}
+            recipeIngredient.editData = { measure: recipeIngredient.measure, quantity: recipeIngredient.quantity, optional: recipeIngredient.optional, ingredient: {id: recipeIngredient.ingredient.id, name: recipeIngredient.ingredient.name}, notes: recipeIngredient.notes, group: recipeIngredient.group, advOptions: false}
         },
         saveAddedIngredientEditing(recipeIngredient){
             if(recipeIngredient.editMode){
@@ -539,6 +581,7 @@ export default {
                 recipeIngredient.measure = newMeasure !== null ? newMeasure : this.getDefaultEmptyObject()
                 recipeIngredient.ingredient = newIngredient !== null ? newIngredient : this.getDefaultEmptyObject()
                 recipeIngredient.notes = recipeIngredient.editData.notes
+                recipeIngredient.group = recipeIngredient.editData.group
                 this.togleIngredientEditMode(recipeIngredient)
             }
         },
@@ -649,6 +692,80 @@ export default {
                 this.importInternalRecipe()
             }
         },
+        async importInternalRecipe(){
+
+            const recipe = await axios.get(this.deploy_to + `recipe/${this.importId}`, {headers: {'Authorization': `Token ${this.$store.getters.getToken}`}})
+                                .then(resp => resp.data)
+                                .catch(errors => {
+                                    console.log("Error importing recipe: " + errors)
+                                })
+
+            if(recipe != undefined){
+                this.recipeName = recipe.name
+                this.dish = recipe.dishType != null ? recipe.dishType.id : null
+                this.difficulty = this.difficultyOptions[recipe.difficulty-1]
+                this.numberServes = recipe.serves
+                this.prepTime = recipe.prepareInMinutes
+                this.totalTime = recipe.readyInMinutes
+                this.utensils = recipe.utensils.map(u => u.id)
+                this.description = recipe.description
+                this.added_ingredients = this.importAddedIngredients(recipe.ingredients)
+                this.importInternalInstructions(recipe.instructions)
+                this.url = recipe.image
+            }
+        },
+        importAddedIngredients(ingredients){
+            console.log(ingredients)
+            var addedIngredients = []
+            ingredients.forEach(i => {
+                var recipeIngredient = {
+                    measure: {id: i.measure, name: i.measureName},
+                    quantity: i.quantity,
+                    optional: i.optional,
+                    ingredient: {id : i.id, name: i.ingredientName},
+                    group: i.group,
+                    editData : { measure: null, quantity: undefined, optional: false, ingredient: {id: null, name: ""}, notes : "", group: "", advOptions: false},
+                    editMode: false,
+                }
+                addedIngredients.push(recipeIngredient)
+
+                if(i.group && !this.recipeGroups[i.group]) this.recipeGroups.push(i.group)
+            })
+            return addedIngredients
+        },
+        importInternalInstructions(instructions){
+            var groupedInstructions = {}
+            //Build instruction map per group
+            instructions.forEach(i => {
+                //Default group
+                if(!i.group)
+                    (groupedInstructions["default"] = groupedInstructions["default"] || []).push(i.instruction_description)
+                else
+                    (groupedInstructions[i.group] = groupedInstructions[i.group] || []).push(i.instruction_description)
+            });
+            console.log(groupedInstructions)
+            //transfer instructions to text-area in group blocks
+
+            //start with default group
+            this.raw_instructions = ""
+            if(groupedInstructions["default"]){
+                groupedInstructions["default"].forEach(i => {
+                    this.raw_instructions += i.instruction_description + "\n"
+                });
+                delete groupedInstructions["default"];
+            }
+
+            Object.keys(groupedInstructions).forEach(key => {
+                this.raw_instructions += "\n#" + key + "\n"
+                groupedInstructions[key].forEach(i => {
+                    this.raw_instructions += i + "\n"
+                })
+            })
+
+            
+
+            
+        },
         importExternalRecipe(){
             const recipe = this.externalRecipe
             if(recipe != null){
@@ -713,44 +830,6 @@ export default {
             }
 
         },
-        async importInternalRecipe(){
-
-            const recipe = await axios.get(this.deploy_to + `recipe/${this.importId}`, {headers: {'Authorization': `Token ${this.$store.getters.getToken}`}})
-                                .then(resp => resp.data)
-                                .catch(errors => {
-                                    console.log("Error importing recipe: " + errors)
-                                })
-
-            if(recipe != undefined){
-                this.recipeName = recipe.name
-                this.dish = recipe.dishType != null ? recipe.dishType.id : null
-                this.difficulty = this.difficultyOptions[recipe.difficulty-1]
-                this.numberServes = recipe.serves
-                this.prepTime = recipe.prepareInMinutes
-                this.totalTime = recipe.readyInMinutes
-                this.utensils = recipe.utensils.map(u => u.id)
-                this.description = recipe.description
-                this.added_ingredients = this.importAddedIngredients(recipe.ingredients)
-                this.raw_instructions = recipe.instructions.map(i => i.instruction_description).join('\n\n')
-                this.url = recipe.image
-            }
-        },
-        importAddedIngredients(ingredients){
-            console.log(ingredients)
-            var addedIngredients = []
-            ingredients.forEach(i => {
-                var recipeIngredient = {
-                    measure: {id: i.measure, name: i.measureName},
-                    quantity: i.quantity,
-                    optional: i.optional,
-                    ingredient: {id : i.id, name: i.ingredientName},
-                    editData : { measure: null, quantity: undefined, optional: false, ingredient: {id: null, name: ""}, notes : ""},
-                    editMode: false,
-                }
-                addedIngredients.push(recipeIngredient)
-            })
-            return addedIngredients
-        },
         //Used to create Recipe Ingredient from external scraped ingredient
         //Can have multiple measure/ingredient options for manual selection
         //*ingredientGroup is used in some sources that divide ingredients by groups (e.g., 'sauce', 'serve with')
@@ -761,7 +840,7 @@ export default {
                 optional: false,
                 ingredient: {id : null, name: ""},
                 notes: originalNotes,
-                editData : { measure: null, quantity: quantity, optional: false, ingredient: {id: null, name: ""}, notes : ""},
+                editData : { measure: null, quantity: quantity, optional: false, ingredient: {id: null, name: ""}, notes : "", group: ingredientGroup, advOptions: false},
                 editMode: true,
                 error : null,
                 group: ingredientGroup,
@@ -784,6 +863,9 @@ export default {
                     recipeIngredient.editData.ingredient = {id: bestIngredient.id, name: bestIngredient.name}
             }
 
+            if(ingredientGroup && !this.recipeGroups[ingredientGroup])
+                this.recipeGroups.push(ingredientGroup)
+
             this.added_ingredients.push(recipeIngredient);
         },
         submitButtonText(){
@@ -799,7 +881,8 @@ export default {
                     measure: item.measure.id,
                     quantity: item.quantity,
                     optional: item.optional,
-                    ingredient: item.ingredient.id
+                    ingredient: item.ingredient.id,
+                    group: item.group
                 }
                 recipeIngredients.push(recipeIngredient)
             })
@@ -921,9 +1004,9 @@ export default {
                 return false
             }
             //Can't have any ingredient in edit mode
-            for(let ri in this.added_ingredients){
-                if(ri.editMode){
-                    this.showErr("Ingredient " + ri.ingredient.name + " is in edit mode. Please Validate.");
+            for(var i = 0; i < this.added_ingredients.length; i++){
+                if(this.added_ingredients[i].editMode){
+                    this.showErr("Ingredient " + this.added_ingredients[i].editData.ingredient.name + " is in edit mode. Please Validate.");
                     return false
                 }
             }
@@ -947,6 +1030,22 @@ export default {
         //the default group is 'ingredients'
         ingredientHasGroup(group){
             return !group || group !== 'ingredients'
+        },
+        toggleAddIngredientAdvOptions(){
+            this.expandAddIngredientOptions = !this.expandAddIngredientOptions
+        },
+        toggleEditIngredientAdvOptions(ingredient){
+            ingredient.editData.advOptions = !ingredient.editData.advOptions
+        },
+        addNewGroup(){
+            this.recipeGroups.push(this.newRecipeGroup)
+            this.newRecipeGroup = ""
+        },
+        changeIngredientGroup(selected){
+            if(selected)
+                this.ingredientGroup = selected
+            else
+                this.ingredientGroup = ""    
         }
     }
 }
