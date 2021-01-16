@@ -750,7 +750,7 @@ export default {
             this.raw_instructions = ""
             if(groupedInstructions["default"]){
                 groupedInstructions["default"].forEach(i => {
-                    this.raw_instructions += i.instruction_description + "\n"
+                    this.raw_instructions += i + "\n"
                 });
                 delete groupedInstructions["default"];
             }
