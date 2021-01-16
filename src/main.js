@@ -5,6 +5,7 @@ import vuetify from './plugins/vuetify';
 import Recipes from './components/Recipe/Recipes.vue'
 import Home from './components/Home.vue'
 import ExportData from './components/ExportData.vue'
+import Translations from './components/Translations.vue'
 import ValidateRecipe from './components/Recipe/ValidateRecipe.vue'
 import Ingredients from './components/Ingredient/Ingredients.vue'
 import Diets from './components/Diet/Diets.vue'
@@ -66,6 +67,7 @@ const routes = [
   { path: '/addRecipe', name:'Add Recipe', component: AddRecipe, props: true},
   { path: '/fanarRecipe', name:'Sneaky Fananço', component: FanarRecipe, props: true},
   { path: '/addIngredient', name:'Add Ingredient', component: AddIngredientTab, props: true},
+  { path: '/translations', name:'Translations', component: Translations, props: true},
   { path: '/ingredients',  name:'Ingredients', component: Ingredients, props: true, meta: {requiresAuth: true}},
   { path: '/validateIngredient', name:'Validate Ingredient', component: ValidateIngredient, props: true},
   { path: '/login',  name:'Login', component: Login, props: true}

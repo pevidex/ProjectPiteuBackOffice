@@ -88,6 +88,11 @@ import { SidebarMenu } from 'vue-sidebar-menu'
                   title: 'Export Data',
                   icon: 'fa fa-database'
               },
+              {
+                  href: '/translations',
+                  title: 'Translations',
+                  icon: 'fa fa-globe'
+              },
           ]
       }
   }
