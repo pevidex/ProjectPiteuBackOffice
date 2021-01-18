@@ -307,7 +307,7 @@
 import axios from 'axios'
 import Vue from 'vue'
 import { getSignedUrl, uploadImageFileToS3 } from '@/helpers/s3-image-storage'
-import { mapExternalMeasures, mapExternalIngredients } from '@/helpers/mapExternalRecipeData'
+import { mapExternalMeasures, mapExternalIngredients, getSimilarRecipesByTitle } from '@/helpers/searchModelsBySimilarity'
 import AddIngredientCore from '../Ingredient/AddIngredientCore.vue'
 
 var utils = require('../../utils');
@@ -459,8 +459,8 @@ export default {
             }
 
             console.log(recipe);
-            //TODO make sure importId is not associated with current recipe
-            if(this.importId == null || this.importId < 1){
+
+            if(this.importId == null || this.importId < 1){ //NEW RECIPE
                 this.sendNewRecipeRequest(recipe);
             } else {
                 this.sendUpdateRecipeRequest(recipe, this.importId)
@@ -479,16 +479,35 @@ export default {
                     this.showErr("Error updating recipe: " + errors)
                 })
         },
-        sendNewRecipeRequest(recipe){
-            axios.post(this.deploy_to + 'recipe/', recipe,{headers: {
-                    'Authorization': `Token ${this.$store.getters.getToken}`}})
-                .then((response) => {
-                    this.showSuccess("status "+response.status)
-                    this.clearForms()
-                })
-                .catch(errors => {
-                    console.log("Tried to create recipe, error: " + errors)
-                })
+        async sendNewRecipeRequest(recipe){
+
+            let similarRecipes = await this.checkSimilarRecipes(recipe.name)
+            if(similarRecipes.length > 0){
+                //Require Confirmation
+                if(confirm('You sure? There are similar recipes to: ' + recipe.name + ', like: ' + similarRecipes.join(', '))){
+            
+                    axios.post(this.deploy_to + 'recipe/', recipe,{headers: {
+                        'Authorization': `Token ${this.$store.getters.getToken}`}})
+                    .then((response) => {
+                        this.showSuccess("status "+response.status)
+                        this.clearForms()
+                    })
+                    .catch(errors => {
+                        console.log("Tried to create recipe, error: " + errors)
+                    })
+                }
+
+            }
+        },
+        async checkSimilarRecipes(name){
+            const recipesBySimilarTitle = await getSimilarRecipesByTitle(name, this.deploy_to, `Token ${this.$store.getters.getToken}`)
+            const suspectRecipes = recipesBySimilarTitle
+            let similarRecipes = []
+
+            if(suspectRecipes)
+                similarRecipes = suspectRecipes.filter(r => r.similarity >= 0.35).map(r => r.name)
+            
+            return similarRecipes;
         },
         generateImageName(){
             const fileExtension = "." + this.file.name.split('.').pop();

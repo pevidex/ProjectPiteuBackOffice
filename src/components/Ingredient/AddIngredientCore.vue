@@ -64,7 +64,7 @@
 import axios from 'axios'
 import Vue from 'vue'
 import { getSignedUrl, uploadImageFileToS3 } from '@/helpers/s3-image-storage'
-import { mapExternalIngredients } from '@/helpers/mapExternalRecipeData'
+import { mapExternalIngredients } from '@/helpers/searchModelsBySimilarity'
 
 var utils = require('../../utils');
 
@@ -210,16 +210,12 @@ export default {
         async checkSimilarIngredients(ingredientName){
             const ingredientMapping = await mapExternalIngredients([ingredientName], this.deploy_to, `Token ${this.$store.getters.getToken}`)
             const suspectIngredients = ingredientMapping[ingredientName]
-            const similarIngredients = []
+            let similarIngredients = []
 
-            if(!suspectIngredients)
-                return []
 
-            for(var i = 0; i < suspectIngredients.length; i++){
-                if(suspectIngredients[i].similarity >= 0.35){
-                    similarIngredients.push(suspectIngredients[i].name)
-                }
-            }
+            if(suspectIngredients)
+                similarIngredients = suspectIngredients.filter(r => r.similarity >= 0.35).map(r => r.name)
+            
             return similarIngredients;
         },
 

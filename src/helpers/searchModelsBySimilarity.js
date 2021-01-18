@@ -27,7 +27,22 @@ async function mapExternalIngredients(ingredientList, serverUrl, token){
 	return ingredientsMapping
 } 
 
+async function getSimilarRecipesByTitle(title, serverUrl, token){
+
+	const recipes = await axios.post(serverUrl + 'backoffice/get-similar-recipes/', {'text': title}, {headers: {'Authorization': token}})
+		.then((response) => {
+			return response.data.recipes
+		})
+		.catch(errors => {
+			console.log(errors)
+			return {}
+		})
+	
+	return recipes
+} 
+
 export {
 	mapExternalIngredients,
-	mapExternalMeasures
+	mapExternalMeasures,
+	getSimilarRecipesByTitle
 }
