@@ -64,6 +64,7 @@
 import axios from 'axios'
 import Vue from 'vue'
 import { getSignedUrl, uploadImageFileToS3 } from '@/helpers/s3-image-storage'
+import { mapExternalIngredients } from '@/helpers/mapExternalRecipeData'
 
 var utils = require('../../utils');
 
@@ -115,9 +116,9 @@ export default {
     },
 
     methods: {
-         showErr(msg){
+         showErr(msg, timeout=3000){
           this.err = msg
-          setTimeout(() => this.err = null, 3000);
+          setTimeout(() => this.err = null, timeout);
         },
         showSuccess(msg){
             this.success = msg
@@ -206,6 +207,22 @@ export default {
         convertDietIdsToObjectArray(dietIds){
             return this.diets.filter(d => dietIds.includes(d.id))
         },
+        async checkSimilarIngredients(ingredientName){
+            const ingredientMapping = await mapExternalIngredients([ingredientName], this.deploy_to, `Token ${this.$store.getters.getToken}`)
+            const suspectIngredients = ingredientMapping[ingredientName]
+            const similarIngredients = []
+
+            if(!suspectIngredients)
+                return []
+
+            for(var i = 0; i < suspectIngredients.length; i++){
+                if(suspectIngredients[i].similarity >= 0.35){
+                    similarIngredients.push(suspectIngredients[i].name)
+                }
+            }
+            return similarIngredients;
+        },
+
         async submit(){
             
             if(this.validateIngredient()) {
@@ -217,11 +234,19 @@ export default {
                     this.currentIngredient.diets = this.diets.filter(d => this.currentIngredient.diets.includes(d.id))
                     this.submitEditedIngredient();
                 } else {
-                    this.submitNewIngredient();
+                    //Inserting new ingredient, need to check for similar ingredients
+                    let similarIngredients = await this.checkSimilarIngredients(this.currentIngredient.name)
+                    if(similarIngredients.length > 0){
+                        //Require Confirmation
+                        if(confirm('There are similar ingredients to: ' + this.currentIngredient.name + ', like: ' + similarIngredients.join(', ')))
+                            this.submitNewIngredient();
+                    } else {
+                        this.submitNewIngredient();
+                    }
                 }
             
             }
-        }, 
+        },
         async submitNewIngredient(){
             let fileName = this.generateImageName(this.uploadedFile.name);
             let imageUrl = await uploadImageFileToS3(this.deploy_to, this.$store.getters.getToken, this.uploadedFile, fileName);
