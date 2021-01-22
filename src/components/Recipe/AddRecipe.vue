@@ -12,36 +12,28 @@
                         <v-btn class="mx-3" depressed small @click="importInternalRecipe">Import</v-btn>
                     </v-row>
                     <v-card-title style="word-break: normal">Very good Recipe that Ricardo's Mother doesn't know</v-card-title>
-                    
-                    <!-- IMAGE PICKER TO CHOOSE FROM EXTERNAL RECIPE -->
-                    <div v-if="externalRecipe">
-                        <v-row align="center" justify="center">
-                            <v-col cols="2">
-                                <v-btn v-if="externalImgIndex > 0" icon v-on:click="navigateExternalImages(-1)">
-                                    <v-icon large>mdi-menu-left-outline</v-icon>
-                                </v-btn>
-                            </v-col>
-                            <v-col cols="8">
-                                <v-img contain height="200px" :src="url"></v-img>
-                            </v-col>
-                            <v-col cols="2">
-                                <v-btn v-if="externalImgIndex < externalRecipe.allImageUrls.length - 1" icon v-on:click="navigateExternalImages(1)">
-                                    <v-icon large >mdi-menu-right-outline</v-icon>
-                                </v-btn> 
-                            </v-col>
-                        </v-row>
-                    </div>
+    
+                    <!-- IMAGE -->
 
-                    <!-- INTERNAL RECIPE IMAGE -->
-                    <div v-if="!externalRecipe">
-                        <v-img contain height="150px" v-if="url" :src="url"></v-img>
-                        <v-file-input class="mt-1" max-height="200px" prepend-icon="mdi-camera" show-size label="Recipe Photo" @change="preview_image" />
-                        <span>OR</span>
-                        <v-text-field class="pa-0 ma-0" label="URL" v-model="url" @change="download_image"></v-text-field>
-                    </div>
+                    <v-row v-show="images.length" align="center" justify="center">
+                        <v-col cols="2">
+                            <v-btn v-if="imgIndex > 0" icon v-on:click="navigateImages(-1)">
+                                <v-icon large>mdi-menu-left-outline</v-icon>
+                            </v-btn>
+                        </v-col>
+                        <v-col cols="8">
+                            <v-img contain height="200px" :src="images[imgIndex] ? images[imgIndex].url : ''"></v-img>
+                        </v-col>
+                        <v-col cols="2">
+                            <v-btn v-if="imgIndex < images.length - 1" icon v-on:click="navigateImages(1)">
+                                <v-icon large >mdi-menu-right-outline</v-icon>
+                            </v-btn> 
+                        </v-col>
+                    </v-row>
+                    <v-btn @click="openImageSelectionComponent">OPEN IMAGE SELECTION</v-btn>
 
                     <v-form>
-                        <v-container class="pa-0">
+                        <v-container class="mt-5 pa-0">
                             <v-row class="px-2">
                                 <v-col cols="12" class="pa-0 ma-0">
                                     <v-text-field class="pa-0" label="Recipe Name" v-model="recipeName"></v-text-field>
@@ -309,13 +301,15 @@ import Vue from 'vue'
 import { getSignedUrl, uploadImageFileToS3 } from '@/helpers/s3-image-storage'
 import { mapExternalMeasures, mapExternalIngredients, getSimilarRecipesByTitle } from '@/helpers/searchModelsBySimilarity'
 import AddIngredientCore from '../Ingredient/AddIngredientCore.vue'
+import ImageSelection from '../UtilityComponents/ImageSelection.vue'
 
 var utils = require('../../utils');
 
 export default {
     name: "AddRecipe",
     components: {
-        AddIngredientCore
+        AddIngredientCore,
+        ImageSelection
     },
     data(){
         return {
@@ -356,7 +350,10 @@ export default {
 
             //When add new ingredient popup appears
             popupShowAddIngredient: false,
-            popupIngredientName: null
+            popupIngredientName: null,
+
+            images: [],   //List of all images {url, file}, first is main image
+            imgIndex: 0
         }
     },
     async mounted (){
@@ -414,6 +411,7 @@ export default {
             this.recipeName = null
             this.url = null
             this.file = null
+            this.images = []
             this.description = null
             this.dish = null
             this.numberServes = null
@@ -435,17 +433,19 @@ export default {
             }
 
             var imageUrl = ""
-            if(this.file != null){
-                const fileName = this.generateImageName()
-                imageUrl = await uploadImageFileToS3(this.deploy_to, this.$store.getters.getToken, this.file, fileName);
+            let mainImageUrl = this.images[0]
+            let mainImageFile = this.images[0]
+            if(this.mainImageFile != null){
+                const fileName = this.generateImageName(this.mainImageFile)
+                imageUrl = await uploadImageFileToS3(this.deploy_to, this.$store.getters.getToken, this.mainImageFile, fileName);
             } else {
-                imageUrl = this.url
+                imageUrl = this.mainImageUrl
             }
 
             const recipe = {
                 id: this.importId,
                 name : this.recipeName,
-                image : imageUrl,
+                image : mainImageUrl,
                 description : this.description,
                 dishType: this.dish,
                 difficulty : this.getDifficultyValue(),
@@ -509,8 +509,8 @@ export default {
             
             return similarRecipes;
         },
-        generateImageName(){
-            const fileExtension = "." + this.file.name.split('.').pop();
+        generateImageName(file){
+            const fileExtension = "." + file.name.split('.').pop();
             const randomInt = "_" + Math.floor(Math.random() * 10000)
             return this.recipeName.replace(/[^a-z0-9]/gi, '_').toLowerCase() + randomInt + fileExtension
         },
@@ -556,28 +556,6 @@ export default {
             this.currentIngredient = null;
             this.optional = false;
             this.ingredientNotes = "";
-        },
-        setLocalUrl(url){
-            this.url = url;
-        }
-        ,
-        setLocalFile(file){
-            this.file = file;
-        }
-        ,
-        download_image(){
-            if(this.url != ""){
-                utils.downloadImageFile(this.url, this);
-            }
-        }
-        ,
-        preview_image(file){
-            if(file){
-                utils.processImageFile(file,this,true);
-            } else {
-                this.url = null;
-                this.file = null;
-            }
         },
         togleIngredientEditMode(recipeIngredient){
             recipeIngredient.editMode = !recipeIngredient.editMode;
@@ -730,7 +708,7 @@ export default {
                 this.description = recipe.description
                 this.added_ingredients = this.importAddedIngredients(recipe.ingredients)
                 this.importInternalInstructions(recipe.instructions)
-                this.url = recipe.image
+                this.buildImages(recipe.image, this.alternativeImages)
             }
         },
         importAddedIngredients(ingredients){
@@ -793,16 +771,8 @@ export default {
                 this.totalTime = recipe.totalTime
                 this.numberServes = recipe.servings
                 this.description = recipe.description
-
-                //Set url for recipe image and other options for navigation
-                if(recipe.mainImageUrl !== ""){
-                    this.url = recipe.mainImageUrl;
-                    this.externalImgIndex = recipe.allImageUrls.indexOf(recipe.mainImageUrl)
-                } else if (recipe.allImageUrls) {
-                    this.url = recipe.allImageUrls[0]
-                }
-                this.images = recipe.allImageUrls
-
+                this.buildImages(recipe.mainImageUrl, recipe.allImageUrls)
+               
                 //Insert instructions
                 this.raw_instructions = ""
                 var step = 1;
@@ -962,11 +932,12 @@ export default {
 
             return parsedInstructions;
         },
-        navigateExternalImages(moveIndex){
-            const newIndex = this.externalImgIndex + moveIndex
-            if(newIndex > 0 && newIndex < this.externalRecipe.allImageUrls.length - 1){
-                this.externalImgIndex += moveIndex;
-                this.url = this.externalRecipe.allImageUrls[this.externalImgIndex]
+        navigateImages(moveIndex){
+            //Index 0 corresponds to main image
+            const newIndex = this.imgIndex + moveIndex
+            if(newIndex >= 0 && newIndex < this.images.length){
+                this.imgIndex += moveIndex;
+                this.url = this.images[newIndex]
             }
         },
         addNewIngredient(ingredientName, index){
@@ -1065,6 +1036,33 @@ export default {
                 this.ingredientGroup = selected
             else
                 this.ingredientGroup = ""    
+        },
+        openImageSelectionComponent(){
+            this.$modal.show(
+                ImageSelection,
+                {mainImageUrl: "", alternativeImages: []},
+                { width: "70%", height: "auto", adaptive: true, scrollable: true},
+                { 'before-close': this.callbackFromImageSelection }
+            );
+        },
+        callbackFromImageSelection(event){
+            this.images = []
+            if(event.params)
+                this.images = event.params.allImages
+        },
+        newImage(url, file = null){
+            return {url: url, file: file}
+        },
+        buildImages(mainUrl, allUrls){
+            this.images = []
+            this.images.push(this.newImage(mainUrl))
+            allUrls.forEach(u => {
+                if(u !== mainUrl)
+                    this.images.push(this.newImage(u, null))
+            });
+            this.url = mainUrl
+            this.file = null
+            this.imgIndex = 0
         }
     }
 }
