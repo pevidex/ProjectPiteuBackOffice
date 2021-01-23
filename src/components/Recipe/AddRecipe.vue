@@ -314,9 +314,6 @@ export default {
     data(){
         return {
             deploy_to : process.env.VUE_APP_DATABASE,
-            url: null,
-            file: null,
-            recipeS3Url: null,
             recipeName: null,
             dish: null,
             difficulty: null,
@@ -342,7 +339,6 @@ export default {
             success: null,
             importId: null,
             externalRecipe: null,
-            externalImgIndex: 0,
             expandAddIngredientOptions: false,
             ingredientGroup: "",
             recipeGroups: [],
@@ -432,20 +428,26 @@ export default {
                 return;
             }
 
-            var imageUrl = ""
-            let mainImageUrl = this.images[0]
-            let mainImageFile = this.images[0]
-            if(this.mainImageFile != null){
-                const fileName = this.generateImageName(this.mainImageFile)
-                imageUrl = await uploadImageFileToS3(this.deploy_to, this.$store.getters.getToken, this.mainImageFile, fileName);
-            } else {
-                imageUrl = this.mainImageUrl
+            //Get all images as an internal url (S3)
+            let uploadedImages = []
+            for(const i of this.images){
+                if(i.url && (i.url.includes("piteu")) ){   //Is Internal Url, no need to upload
+                    uploadedImages.push(i.url)
+                } else {       //Is external url or new file
+                    let fileName = this.generateImageName(i.file)
+                    let uploadedUrl = await uploadImageFileToS3(this.deploy_to, this.$store.getters.getToken, i.file, fileName);
+                    uploadedImages.push(uploadedUrl)
+                }
             }
+            
+            const mainImageUrl = uploadedImages.shift()
+            const alternativeImages = uploadedImages
 
             const recipe = {
                 id: this.importId,
                 name : this.recipeName,
                 image : mainImageUrl,
+                alternativeImages: alternativeImages,
                 description : this.description,
                 dishType: this.dish,
                 difficulty : this.getDifficultyValue(),
@@ -461,7 +463,16 @@ export default {
             console.log(recipe);
 
             if(this.importId == null || this.importId < 1){ //NEW RECIPE
-                this.sendNewRecipeRequest(recipe);
+
+                let similarRecipes = await this.checkSimilarRecipes(recipe.name)
+                if(similarRecipes.length > 0){
+                    //Require Confirmation
+                    if(confirm('You sure? There are similar recipes to: ' + recipe.name + ', like: ' + similarRecipes.join(', '))){
+                        this.sendNewRecipeRequest(recipe);
+                    }
+                } else {    //No similar recipes, no confirmation
+                    this.sendNewRecipeRequest(recipe)
+                }
             } else {
                 this.sendUpdateRecipeRequest(recipe, this.importId)
             }
@@ -480,24 +491,15 @@ export default {
                 })
         },
         async sendNewRecipeRequest(recipe){
-
-            let similarRecipes = await this.checkSimilarRecipes(recipe.name)
-            if(similarRecipes.length > 0){
-                //Require Confirmation
-                if(confirm('You sure? There are similar recipes to: ' + recipe.name + ', like: ' + similarRecipes.join(', '))){
-            
-                    axios.post(this.deploy_to + 'recipe/', recipe,{headers: {
-                        'Authorization': `Token ${this.$store.getters.getToken}`}})
-                    .then((response) => {
-                        this.showSuccess("status "+response.status)
-                        this.clearForms()
-                    })
-                    .catch(errors => {
-                        console.log("Tried to create recipe, error: " + errors)
-                    })
-                }
-
-            }
+            axios.post(this.deploy_to + 'recipe/', recipe,{headers: {
+                'Authorization': `Token ${this.$store.getters.getToken}`}})
+            .then((response) => {
+                this.showSuccess("Recipe Added with id: " + response.data.id)
+                this.clearForms()
+            })
+            .catch(errors => {
+                console.log("Tried to create recipe, error: " + errors)
+            })
         },
         async checkSimilarRecipes(name){
             const recipesBySimilarTitle = await getSimilarRecipesByTitle(name, this.deploy_to, `Token ${this.$store.getters.getToken}`)
@@ -708,7 +710,7 @@ export default {
                 this.description = recipe.description
                 this.added_ingredients = this.importAddedIngredients(recipe.ingredients)
                 this.importInternalInstructions(recipe.instructions)
-                this.buildImages(recipe.image, this.alternativeImages)
+                this.buildImages(recipe.image, recipe.alternativeImages)
             }
         },
         importAddedIngredients(ingredients){
@@ -719,14 +721,15 @@ export default {
                     measure: {id: i.measure, name: i.measureName},
                     quantity: i.quantity,
                     optional: i.optional,
-                    ingredient: {id : i.id, name: i.ingredientName},
+                    ingredient: {id : i.ingredient, name: i.ingredientName},
                     group: i.group,
                     editData : { measure: null, quantity: undefined, optional: false, ingredient: {id: null, name: ""}, notes : "", group: "", advOptions: false},
                     editMode: false,
                 }
                 addedIngredients.push(recipeIngredient)
 
-                if(i.group && !this.recipeGroups[i.group]) this.recipeGroups.push(i.group)
+                if(i.group && !this.recipeGroups[i.group]) 
+                    this.recipeGroups.push(i.group)
             })
             return addedIngredients
         },
@@ -1004,6 +1007,10 @@ export default {
                 this.showErr("Please add instructions");
                 return false
             }
+            if(this.images.length == 0){
+                this.showErr("Please choose at least one image")
+                return false
+            }
             return true
         },
         validateIngredientFields(measure, quantity, ingredient){
@@ -1038,15 +1045,18 @@ export default {
                 this.ingredientGroup = ""    
         },
         openImageSelectionComponent(){
+            const mainImageUrl = this.images.length ? this.images[0] : {}
+            const alternativeImages = this.images.slice(1)
             this.$modal.show(
                 ImageSelection,
-                {mainImageUrl: "", alternativeImages: []},
+                {initialMainUrl: mainImageUrl, initialAlternativeImages: alternativeImages},
                 { width: "70%", height: "auto", adaptive: true, scrollable: true},
                 { 'before-close': this.callbackFromImageSelection }
             );
         },
         callbackFromImageSelection(event){
             this.images = []
+            this.imgIndex = 0
             if(event.params)
                 this.images = event.params.allImages
         },
@@ -1056,10 +1066,12 @@ export default {
         buildImages(mainUrl, allUrls){
             this.images = []
             this.images.push(this.newImage(mainUrl))
-            allUrls.forEach(u => {
-                if(u !== mainUrl)
-                    this.images.push(this.newImage(u, null))
-            });
+            if(allUrls){
+                allUrls.forEach(u => {
+                    if(u !== mainUrl)
+                        this.images.push(this.newImage(u, null))
+                });
+            }
             this.url = mainUrl
             this.file = null
             this.imgIndex = 0

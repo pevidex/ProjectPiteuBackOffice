@@ -39,6 +39,9 @@
 						<v-btn width="200px" color="#4CAF50" @click="finish">Finish</v-btn>
 					</v-col>
 					<v-col cols="12" align="center">
+						<b-alert variant="danger" v-if="err" show>{{this.err}}</b-alert>
+					</v-col>
+					<v-col cols="12" align="center">
 						<h5>Main Image</h5>
 					</v-col>
 					<v-col v-if="mainUrl" no-gutters align="center">
@@ -80,21 +83,36 @@ var utils = require('../../utils');
 export default {
 	name: "AddIngredientCore",
 	props : {
-		initialMainUrl: String,
+		initialMainUrl: Object,
 		initialAlternativeImages: Array,
 	},
     data(){
         return {
 			deploy_to : process.env.VUE_APP_DATABASE,
+			err: "",
 			newUrl: "",
 			newFile: null,
-			mainUrl: this.initialMainUrl,
+			mainUrl: "",
 			mnainFile: null,
-			alternativeImages : [] //List of {url, file}
+			alternativeImages : this.initialAlternativeImages //List of {url, file}
         }
-    },
+	},
+	created : function () {
+		console.log(this.mainUrl)
+		if(this.initialMainUrl){
+			this.mainUrl = this.initialMainUrl.url
+		}
+		
+		if(this.initialAlternativeImages.length){
+			this.alternativeImages = this.initialAlternativeImages
+		}
+	},
 
     methods: {
+		showErr(msg){
+          this.err = msg
+          setTimeout(() => this.err = null, 2500);
+        },
 		preview_image(file){
             if(file){
                 utils.processImageFile(file,this,true);
@@ -116,7 +134,7 @@ export default {
             this.newFile = file;
 		},
 		addMainImage(){
-			if(this.newUrl && this.newFile){
+			if(this.newUrl){
 				this.mainUrl = this.newUrl,
 				this.mainFile = this.newFile
 
@@ -144,6 +162,8 @@ export default {
 				allImages.push({url: this.mainUrl, file: this.mainFile})
 				allImages = allImages.concat(this.alternativeImages)
 				this.$emit('close', {allImages: allImages})
+			} else {
+				this.showErr("Please choose one main image");
 			}
 		}
     },
