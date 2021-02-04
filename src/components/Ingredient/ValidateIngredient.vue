@@ -131,58 +131,6 @@
         </b-card>
       </template>
     </b-table>
-
-
-
-    <!-- EDIT INGREDIENT 
-    <b-modal 
-      v-model="show"
-      ok-title="Update Ingredient"
-      @ok="handleSubmit"
-      >
-      <div v-if="editedIngredient">
-        <b-row align='center' justify='center'>
-            <b-col cols="4">
-              <b-img thumbnail fluid right :src=editedIngredient.img></b-img>
-            </b-col>
-            <b-col cols="8">
-              <p class="text-left mx-10" v-html="showIngredientDetails(editedIngredient).replace(/(?:\r\n|\r|\n)/g, '<br />')"></p>
-            </b-col>
-          </b-row>
-        <b-row class="mb-1" align="center" justify="center">
-          <b-col cols="12">
-              <v-file-input prepend-icon="mdi-camera" label="Change" @change="preview_edit_image" />
-          </b-col>
-          <b-col cols="12"><b-form-input v-model="editedIngredient.img" id="input-small" placeholder="Image url"></b-form-input></b-col>
-          <b-col cols="3">Category</b-col>
-          <b-col cols="9">
-            <b-form-select
-                label="Category"
-                v-model="selectedCategory"
-                :options="categoriesAsOptions"
-                value-field="value"
-                text-field="text"
-                v-on:change="setCategory"
-              ></b-form-select>
-          </b-col>
-        </b-row>
-        <b-row class="mb-1">
-          <b-col cols="12">
-            <b-form-group label="Exclude from Diets">
-              <b-form-checkbox
-              v-for="diet in diets"
-              v-model="selectedDiets"
-              :key="diet.id"
-              :value="diet"
-              inline>
-                {{ diet.name }}
-              </b-form-checkbox>
-            </b-form-group>
-          </b-col>
-        </b-row>
-      </div>
-    </b-modal>
-    -->
   </b-container>
 </div>
 </template>
@@ -284,9 +232,11 @@ export default {
         );
       },
       ingredientAdded(event){
-        let ingredient = event.params.paramList[0]
-        let requestId = event.params.paramList[1]
-        console.log("Returned from ingredient added successfully - " + ingredient.name)
+        if(event && event.params.paramList){
+          let ingredient = event.params.paramList[0]
+          let requestId = event.params.paramList[1]
+          console.log("Returned from ingredient added successfully - " + ingredient.name)
+        }
       },
       showErr(msg){
           this.err = msg

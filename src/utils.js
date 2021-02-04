@@ -9,7 +9,7 @@ export function processImageFile(file, self, setUrl = false){
     if (setUrl)
         self.setLocalUrl(blobURL)
 
-    image.onload = function () {
+    image.onload = async function () {
         var canvas = document.createElement('canvas');    
         var width = image.width;
         var height = image.height;
@@ -18,12 +18,14 @@ export function processImageFile(file, self, setUrl = false){
         ctx.canvas.height = height;
         ctx.drawImage(image, 0, 0, width, height, 0, 0, canvas.width, canvas.height);
 
-        ctx.canvas.toBlob((blob) => {
-            self.setLocalFile(new File([blob], file.name, {
+        const file = await new Promise((resolve, reject) => ctx.canvas.toBlob((blob) => {
+            resolve(new File([blob], "test.jpg", {
                 type: 'image/jpeg',
                 lastModified: Date.now()
-            }));
-        }, 'image/jpeg', 0.6); //value to change image quality
+            }))
+        }, 'image/jpeg', 0.6 //value to change image quality
+        ));
+        self.setLocalFile(file)
     }
 }
 
@@ -37,20 +39,23 @@ export function downloadImageFile(url, self){
 
     self.setLocalUrl(url)
 
-    var onload = function () {
-        var canvas = document.createElement("canvas");
-        canvas.width = image.width;
-        canvas.height = image.height;
-
+    image.onload = async function () {
+        var canvas = document.createElement('canvas');    
+        var width = image.width;
+        var height = image.height;
         var ctx = canvas.getContext("2d");
-        ctx.drawImage(image, 0, 0);
-        ctx.canvas.toBlob((blob) => { 
-            self.setLocalFile(new File([blob], "test.jpg", {
+        ctx.canvas.width  = width;
+        ctx.canvas.height = height;
+        ctx.drawImage(image, 0, 0, width, height, 0, 0, canvas.width, canvas.height);
+        
+        const file = await new Promise((resolve, reject) => ctx.canvas.toBlob((blob) => {
+            resolve(new File([blob], "test.jpg", {
                 type: 'image/jpeg',
                 lastModified: Date.now()
-            }));
-            processImageFile(self.uploadedFile,self)
-        }, 'image/jpeg', 1);
-    };
-    image.onload = onload;
+            }))
+        }, 'image/jpeg', 0.6 //value to change image quality
+        ));
+        self.setLocalFile(file)
+        
+    }
 }

@@ -1,7 +1,13 @@
 <template>
     <v-container style="margin: 0px; padding: 0px; max-width: 100%; height:100%" fluid >
 
-            
+        <!-- CONFIRMATION DIALOG -->
+        <div>
+            <vue-confirm-dialog></vue-confirm-dialog>
+            <!-- your code -->
+        </div>
+
+
         <v-row class="ma-0 fill-height">
             <v-col cols="4" class="ma-0 pa-0 flex-grow-0">
 
@@ -15,19 +21,27 @@
     
                     <!-- IMAGE -->
 
-                    <v-row v-show="images.length" align="center" justify="center">
-                        <v-col cols="2">
+                    <v-row no-gutters v-show="images.length" align="center" justify="center">
+                        <v-col cols="1">
                             <v-btn v-if="imgIndex > 0" icon v-on:click="navigateImages(-1)">
                                 <v-icon large>mdi-menu-left-outline</v-icon>
                             </v-btn>
                         </v-col>
-                        <v-col cols="8">
-                            <v-img contain height="200px" :src="images[imgIndex] ? images[imgIndex].url : ''"></v-img>
+                        <v-col cols="9">
+                            <v-img ref="currentImg" contain height="200px" :src="images[imgIndex] ? images[imgIndex].url : ''" @load="updateImageDimensions()"></v-img>
                         </v-col>
-                        <v-col cols="2">
+                        <v-col cols="1">
                             <v-btn v-if="imgIndex < images.length - 1" icon v-on:click="navigateImages(1)">
                                 <v-icon large >mdi-menu-right-outline</v-icon>
                             </v-btn> 
+                        </v-col>
+                        <v-col cols="12">
+                            <span>Ratio: <strong> {{ (currentImgWidth / currentImgHeight).toFixed(2) }}</strong></span>
+                            &nbsp;
+                            <span>Width: <strong>{{ currentImgWidth }}</strong></span>
+                            &nbsp;
+                            <span>Height: <strong>{{ currentImgHeight }}</strong></span>
+                            <br/>
                         </v-col>
                     </v-row>
                     <v-btn @click="openImageSelectionComponent">OPEN IMAGE SELECTION</v-btn>
@@ -298,7 +312,7 @@
 <script>
 import axios from 'axios'
 import Vue from 'vue'
-import { getSignedUrl, uploadImageFileToS3 } from '@/helpers/s3-image-storage'
+import { getSignedUrl, uploadImageFileToS3} from '@/helpers/s3-image-storage'
 import { mapExternalMeasures, mapExternalIngredients, getSimilarRecipesByTitle } from '@/helpers/searchModelsBySimilarity'
 import AddIngredientCore from '../Ingredient/AddIngredientCore.vue'
 import ImageSelection from '../UtilityComponents/ImageSelection.vue'
@@ -349,7 +363,10 @@ export default {
             popupIngredientName: null,
 
             images: [],   //List of all images {url, file}, first is main image
-            imgIndex: 0
+            imgIndex: 0,
+
+            currentImgWidth: 0,
+            currentImgHeight: 0
         }
     },
     async mounted (){
@@ -431,13 +448,8 @@ export default {
             //Get all images as an internal url (S3)
             let uploadedImages = []
             for(const i of this.images){
-                if(i.url && (i.url.includes("piteu")) ){   //Is Internal Url, no need to upload
-                    uploadedImages.push(i.url)
-                } else {       //Is external url or new file
-                    let fileName = this.generateImageName(i.file)
-                    let uploadedUrl = await uploadImageFileToS3(this.deploy_to, this.$store.getters.getToken, i.file, fileName);
-                    uploadedImages.push(uploadedUrl)
-                }
+                let url = await this.generateImageUrl(i.url, i.file)
+                uploadedImages.push(url)
             }
             
             const mainImageUrl = uploadedImages.shift()
@@ -454,7 +466,7 @@ export default {
                 serves : this.numberServes,
                 prepareInMinutes : this.prepTime,
                 readyInMinutes : this.totalTime,
-                utensils: this.utensils,
+                utensils: this.parseUtensils(),
                 recipeIngredients: this.parseRecipeIngredients(),
                 instructions: this.parseInstructions(),
                 is_valid : true
@@ -464,12 +476,26 @@ export default {
 
             if(this.importId == null || this.importId < 1){ //NEW RECIPE
 
+
                 let similarRecipes = await this.checkSimilarRecipes(recipe.name)
                 if(similarRecipes.length > 0){
                     //Require Confirmation
-                    if(confirm('You sure? There are similar recipes to: ' + recipe.name + ', like: ' + similarRecipes.join(', '))){
-                        this.sendNewRecipeRequest(recipe);
-                    }
+
+                    this.$confirm(
+                        {
+                        title: 'There are similar recipes to: ' + recipe.name,
+                        message: similarRecipes.join(','),
+                        button: {
+                            no: 'Cancel',
+                            yes: 'Submit'
+                        },
+                        callback: confirm => {
+                            if (confirm) {
+                                this.sendNewRecipeRequest(recipe)
+                            }
+                        }
+                        }
+                    )
                 } else {    //No similar recipes, no confirmation
                     this.sendNewRecipeRequest(recipe)
                 }
@@ -499,6 +525,7 @@ export default {
             })
             .catch(errors => {
                 console.log("Tried to create recipe, error: " + errors)
+                this.showErr("Can't insert this recipe")
             })
         },
         async checkSimilarRecipes(name){
@@ -510,6 +537,15 @@ export default {
                 similarRecipes = suspectRecipes.filter(r => r.similarity >= 0.35).map(r => r.name)
             
             return similarRecipes;
+        },
+        async generateImageUrl(url, file){
+            if(url && url.includes(Vue.Constants.STORAGE_PROVIDER)){   //Is Internal Url, no need to upload
+                return url
+            }
+
+            let fileName = this.generateImageName(file)
+            url = await uploadImageFileToS3(this.deploy_to, this.$store.getters.getToken, file, fileName)
+            return url
         },
         generateImageName(file){
             const fileExtension = "." + file.name.split('.').pop();
@@ -935,6 +971,9 @@ export default {
 
             return parsedInstructions;
         },
+        parseUtensils(){
+            return this.possible_utensils.filter(u => this.utensils.indexOf(u.id) > 0)
+        },
         navigateImages(moveIndex){
             //Index 0 corresponds to main image
             const newIndex = this.imgIndex + moveIndex
@@ -942,6 +981,11 @@ export default {
                 this.imgIndex += moveIndex;
                 this.url = this.images[newIndex]
             }
+        },
+        updateImageDimensions(){
+            const {naturalHeight, naturalWidth} = this.$refs.currentImg.image;
+            this.currentImgWidth = naturalWidth
+            this.currentImgHeight = naturalHeight
         },
         addNewIngredient(ingredientName, index){
             this.$modal.show(
@@ -966,6 +1010,9 @@ export default {
             addedIngredient.editData.ingredient = createdIngredient
             this.$set(this.added_ingredients, requestId, addedIngredient)
             
+        },
+        getConfirmationDialogMessage(){
+
         },
         validateRecipe(){
             if(this.recipeName == null || this.recipeName.length < 2){
@@ -1057,7 +1104,7 @@ export default {
         callbackFromImageSelection(event){
             this.images = []
             this.imgIndex = 0
-            if(event.params)
+            if(event && event.params && event.params.allImages)
                 this.images = event.params.allImages
         },
         newImage(url, file = null){

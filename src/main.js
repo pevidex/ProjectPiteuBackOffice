@@ -32,12 +32,19 @@ import 'vue-loading-overlay/dist/vue-loading.css';
 import 'viewerjs/dist/viewer.css';
 import Viewer from 'v-viewer';
 import VModal from 'vue-js-modal'
+import VueCropper from 'vue-cropperjs';
+import 'cropperjs/dist/cropper.css';
+import VueConfirmDialog from 'vue-confirm-dialog'
+
 
 
 library.add(faUserSecret)
 
 Vue.component('font-awesome-icon', FontAwesomeIcon)
 Vue.component('loading-overlay', Loading)
+
+Vue.use(VueConfirmDialog)
+Vue.component('vue-confirm-dialog', VueConfirmDialog.default)
 
 Vue.use(BootstrapVue)
 Vue.use(IconsPlugin)
@@ -47,6 +54,7 @@ Vue.use(VueJsDialog)
 Vue.use(Constants)
 Vue.use(Viewer)
 Vue.use(VModal)
+Vue.component(VueCropper);
 
 Vue.config.productionTip = false
 Vue.prototype.$http = Axios;

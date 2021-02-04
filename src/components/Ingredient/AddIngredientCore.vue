@@ -1,6 +1,6 @@
 <template>
     <v-container fill-height>
-        <v-row no-gutters justify="center" align="center">
+        <v-row justify="center" align="center">
             <b-alert variant="success" v-if="this.success" show>{{this.success}}</b-alert>
             <b-alert variant="danger" v-if="this.err" show>{{this.err}}</b-alert>
             <v-col justify="space-around" align="center" cols="12">
@@ -31,28 +31,31 @@
                 </v-col>
                 
             </v-row>
-            <v-row>
-              <v-col cols="12" id="imagePreview" align="center">
-                    <v-img 
-                        v-if="currentIngredient.img"
-                        :src="currentIngredient.img" alt=""
-                        contain
-                        max-width="300px"
-                        max-height="150px"
-                        >
-                    </v-img>
+            <v-row v-if="currentIngredient.img" align="center" justify="center">
+                <v-col cols="12">
+                    <v-img ref="currentImg" contain height="200px" :src="currentIngredient.img" @load="updateImageDimensions()"></v-img>
                 </v-col>
-                <v-col justify="center" cols="12" class="form-group">
-                    <v-file-input prepend-icon="mdi-camera" show-size label="Upload Photo" @change="preview_image" ref="inputImage"/>
-                    <span>OR</span>
-                    <v-text-field label="URL" v-model="currentIngredient.img" @input="download_image"></v-text-field>
+                <v-col cols="12">
+                    <span>Ratio: <strong> {{ (currentImgWidth / currentImgHeight).toFixed(2) }}</strong></span>
+                    &nbsp;
+                    <span>Width: <strong>{{ currentImgWidth }}</strong></span>
+                    &nbsp;
+                    <span>Height: <strong>{{ currentImgHeight }}</strong></span>
+                    <br/>
                 </v-col>
             </v-row>
-            <v-row no-gutters>
+            <v-row no-gutters align="center" justify="center">
+                <v-col cols="12">
+                    <v-btn @click="openImageSelectionComponent">OPEN IMAGE SELECTION</v-btn>
+                </v-col>
+            </v-row>
+            
+            <v-row class="mt-5" no-gutters align="center" justify="center">
                 <v-col cols="12">
                     <button type="submit" class="btn btn-primary" >Submit</button>
                 </v-col>
             </v-row>
+
             </form>
             
             </v-col>
@@ -63,13 +66,17 @@
 <script>
 import axios from 'axios'
 import Vue from 'vue'
-import { getSignedUrl, uploadImageFileToS3 } from '@/helpers/s3-image-storage'
+import { getSignedUrl, uploadImageFileToS3} from '@/helpers/s3-image-storage'
 import { mapExternalIngredients } from '@/helpers/searchModelsBySimilarity'
+import ImageSelection from '../UtilityComponents/ImageSelection.vue'
 
 var utils = require('../../utils');
 
 export default {
     name: "AddIngredientCore",
+    components: {
+        ImageSelection
+    },
     props : {
         initialName: {
             type: String,
@@ -106,12 +113,15 @@ export default {
                 "name" : this.initialName,
                 "img" : this.initialUrl,
                 "category" : this.initialCategory,
-                "diets": this.convertDietObjArrayToIds(this.initialDiets)
+                "diets": this.convertDietObjArrayToIds(this.initialDiets),
+                "is_valid": true
             },
             categories : [],
             diets : [],
             ourIngredients : [],
-            editIngredientId : this.initialEditIngredientId
+            editIngredientId : this.initialEditIngredientId,
+            currentImgWidth: 0,
+            currentImgHeight: 0
         }
     },
 
@@ -146,38 +156,6 @@ export default {
                 }
             }
             return false;
-        }
-        ,
-        setLocalUrl(url){
-            this.uploadedUrl = url;
-        }
-        ,
-        setLocalFile(file){
-            console.log("Image file stored")
-            this.uploadedFile = file;
-        },
-        getImageFileName(){
-            if(this.uploadedFile){
-                return this.uploadedFile.name;
-            }
-            return this.uploadedUrl
-        },
-        download_image(){
-            if(this.currentIngredient.img != ""){
-                console.log("downloading image")
-                utils.downloadImageFile(this.currentIngredient.img, this);
-                this.currentIngredient.img = this.uploadedUrl
-            }
-        }
-        ,
-        preview_image(file){
-            if(file){
-                utils.processImageFile(file,this,true);
-                this.currentIngredient.img = this.uploadedUrl
-            } else {
-                this.uploadedUrl = null
-                this.uploadedFile = null
-            }
         },
         validateIngredient(){
             if(this.currentIngredient.name.length < 2){
@@ -244,8 +222,8 @@ export default {
             }
         },
         async submitNewIngredient(){
-            let fileName = this.generateImageName(this.uploadedFile.name);
-            let imageUrl = await uploadImageFileToS3(this.deploy_to, this.$store.getters.getToken, this.uploadedFile, fileName);
+            
+            let imageUrl = await this.generateImageUrl(this.currentIngredient.img, this.uploadedFile)
 
             const ingredient = {
                 name: this.currentIngredient.name,
@@ -271,14 +249,8 @@ export default {
             console.log("submiting edited ingredient: " + this.currentIngredient.name)
 
             this.currentIngredient.id = this.editIngredientId
-            //If image was edited
-            if(this.initialUrl !== this.currentIngredient.img){
-                if(this.uploadedFile){
-                    //Upload local img to S3
-                    let fileName = this.generateImageName(this.uploadedFile.name)
-                    this.editedIngredient.img = await uploadImageFileToS3(this.deploy_to, this.$store.getters.getToken, this.uploadedImgEdit, fileName)
-                }
-            }
+            this.currentIngredient.img = await this.generateImageUrl(this.currentIngredient.img, this.uploadedFile)
+
 
             axios.post(this.deploy_to + 'backoffice/edit/ingredient/'+this.currentIngredient.id+"/", this.currentIngredient, {headers: {'Authorization': `Token ${this.$store.getters.getToken}`}})
             .then((response) => {
@@ -291,13 +263,44 @@ export default {
                 console.log(errors.status)
             })
         },
-        generateImageName(filename){
-            let fileExtension = "." + filename.split('.').pop();
-            let randomInt = "_" + Math.floor(Math.random() * 10000)
+        generateImageName(file){
+            const fileExtension = "." + file.name.split('.').pop();
+            const randomInt = "_" + Math.floor(Math.random() * 10000)
             let name = this.currentIngredient.category.id + "_" + this.currentIngredient.name.replace(/[^a-z0-9]/gi, '_').toLowerCase() + randomInt + fileExtension
-            console.log("Generated image name from file {0}, name: {1}", filename, name)
+            console.log("Generated image name from file {0}, name: {1}", file.name, name)
             return name
-        }
+        },
+        async generateImageUrl(url, file){
+            if(url && url.includes(Vue.Constants.STORAGE_PROVIDER)){   //Is Internal Url, no need to upload
+                return url
+            }
+
+            let fileName = this.generateImageName(file)
+            url = await uploadImageFileToS3(this.deploy_to, this.$store.getters.getToken, file, fileName)
+            return url
+        },
+        updateImageDimensions(){
+            const {naturalHeight, naturalWidth} = this.$refs.currentImg.image;
+            this.currentImgWidth = naturalWidth
+            this.currentImgHeight = naturalHeight
+        },
+        openImageSelectionComponent(){
+            let mainImg = {url: this.currentIngredient.img}
+            this.$modal.show(
+                ImageSelection,
+                {initialMainUrl: mainImg, initialAlternativeImages: []},
+                { width: "70%", height: "auto", adaptive: true, scrollable: true},
+                { 'before-close': this.callbackFromImageSelection }
+            );
+        },
+        callbackFromImageSelection(event){
+            this.images = []
+            this.imgIndex = 0
+            if(event && event.params && event.params.allImages){
+                this.currentIngredient.img = event.params.allImages[0].url
+                this.uploadedFile = event.params.allImages[0].file
+            }
+        },
     },
 
     created (){

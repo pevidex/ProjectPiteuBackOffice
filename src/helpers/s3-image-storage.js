@@ -39,7 +39,6 @@ async function uploadImageFileToS3(baseUrl, token, file, filename){
 }
 
 
-
 export {
 	getSignedUrl,
 	uploadImageFileToS3
