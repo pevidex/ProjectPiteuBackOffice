@@ -759,6 +759,7 @@ export default {
                     optional: i.optional,
                     ingredient: {id : i.ingredient, name: i.ingredientName},
                     group: i.group,
+                    notes: i.notes,
                     editData : { measure: null, quantity: undefined, optional: false, ingredient: {id: null, name: ""}, notes : "", group: "", advOptions: false},
                     editMode: false,
                 }
@@ -909,6 +910,7 @@ export default {
                     measure: item.measure.id,
                     quantity: item.quantity,
                     optional: item.optional,
+                    notes: item.notes,
                     ingredient: item.ingredient.id,
                     group: item.group
                 }
