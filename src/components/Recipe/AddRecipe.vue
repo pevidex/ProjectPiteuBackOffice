@@ -567,9 +567,14 @@ export default {
                 return;
             }
 
-            if(!this.verifyIngredientUniqueInRecipe(this.currentIngredient.id)){
-                this.showAddedIngredientErr("Ingredient already exists, edit instead")
-                return
+            //Fill default none measure
+            if(!this.measure){
+                this.measure = this.getDefaultNoneMeasure();
+            }
+
+            //Fill default none quantity 
+            if(!this.quantity){
+                this.quantity = -1
             }
 
             var recipeIngredient = {
@@ -583,7 +588,6 @@ export default {
                 editData : { measure: this.measure, quantity: this.quantity, optional: this.optional, ingredient: {id: this.currentIngredient.id, name: this.currentIngredient.name}, notes: this.ingredientNotes, group: this.ingredientGroup},
                 error : null
             }
-
             this.added_ingredients.push(recipeIngredient)
             this.resetIngredientsForm();
         },
@@ -591,9 +595,11 @@ export default {
             this.added_ingredients.splice(index, 1)
         },
         resetIngredientsForm(){
-            this.currentIngredient = null;
-            this.optional = false;
-            this.ingredientNotes = "";
+            this.currentIngredient = null
+            this.optional = false
+            this.ingredientNotes = ""
+            this.measure = null
+            this.quantity = null
         },
         togleIngredientEditMode(recipeIngredient){
             recipeIngredient.editMode = !recipeIngredient.editMode;
@@ -1124,6 +1130,14 @@ export default {
             this.url = mainUrl
             this.file = null
             this.imgIndex = 0
+        },
+        getDefaultNoneMeasure(){
+            for(var i = 0; i < this.possible_measures.length; i++){
+                if(this.possible_measures[i].name === "none"){
+                    return this.possible_measures[i]
+                }
+            }
+            return null
         }
     }
 }
