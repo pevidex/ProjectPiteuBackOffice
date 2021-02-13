@@ -617,9 +617,9 @@ export default {
                 let newMeasure = recipeIngredient.editData.measure;
                 let newIngredient = recipeIngredient.editData.ingredient;
                 
-                recipeIngredient.quantity = recipeIngredient.editData.quantity
+                recipeIngredient.quantity = recipeIngredient.editData.quantity > 0 ? recipeIngredient.editData.quantity : -1
                 recipeIngredient.optional = recipeIngredient.editData.optional
-                recipeIngredient.measure = newMeasure !== null ? newMeasure : this.getDefaultEmptyObject()
+                recipeIngredient.measure = newMeasure ? newMeasure : this.getDefaultNoneMeasure()
                 recipeIngredient.ingredient = newIngredient !== null ? newIngredient : this.getDefaultEmptyObject()
                 recipeIngredient.notes = recipeIngredient.editData.notes
                 recipeIngredient.group = recipeIngredient.editData.group
@@ -1073,8 +1073,6 @@ export default {
             if(ingredient === null || ingredient.id === null)
                 return false
             if((!measure || measure.id == null) && (!quantity || quantity === ""))
-                return false
-            if(parseInt(quantity) < 0)
                 return false
             return true
         },
